@@ -1664,7 +1664,7 @@ def main(argv: list[str] | None = None) -> int:
         if not argv[1:]:
             print_help(is_subcommand=True, command="init", error="Missing <name> argument.")
             return 2
-        init_project(argv[1])
+        proj = init_project(argv[1])
         print(
             _status_panel(
                 "init",
@@ -1673,6 +1673,8 @@ def main(argv: list[str] | None = None) -> int:
                 command="init",
             )
         )
+        _advance_pipeline_if_artifact(proj, "s4modconfig.yaml")
+        _advance_pipeline_if_artifact(proj, "mod_notes.txt")
         return 0
 
     if command == "new":
