@@ -1707,21 +1707,30 @@ def main(argv: list[str] | None = None) -> int:
             print_help(is_subcommand=True, command="new", error=f"Unknown kind: {kind}")
             return 2
         print(_status_panel("new", _meta_block("verified", "Created", kind) + [f"Path: {factory(proj, name)}"], command="new"))
+        _advance_pipeline_if_artifact(proj, f"src/{kind}")
+        _advance_pipeline_if_artifact(proj, "src/xml_snippets")
+        _advance_pipeline_if_artifact(proj, "src/ts4script")
+        _advance_pipeline_if_artifact(proj, "src/package")
         return 0
 
     if command == "validate":
         path = argv[1] if len(argv) > 1 else "."
         strict = "--strict" in argv
-        issues = validate_project(_existing_project(path), strict=strict)
+        proj = _existing_project(path)
+        issues = validate_project(proj, strict=strict)
         state = "ok" if issues == 0 else "fail"
         print(_status_panel("validate", _meta_block(state, "Validation", f"{issues} issue{'s' if issues != 1 else ''}"), command="validate"))
+        _advance_pipeline_if_artifact(proj, "docs/validation_report.txt")
+        _advance_pipeline_if_artifact(proj, "tmp/lint_report.txt")
         return issues
 
     if command == "build":
         path = argv[1] if len(argv) > 1 else "."
         release = "--release" in argv
-        out = build_project(_existing_project(path), release=release)
+        proj = _existing_project(path)
+        out = build_project(proj, release=release)
         print(_status_panel("build", _meta_block("verified", "Built", str(out)), command="build"))
+        _advance_pipeline_if_artifact(proj, "dist")
         return 0
 
     if command == "package":
@@ -1731,8 +1740,11 @@ def main(argv: list[str] | None = None) -> int:
             idx = argv.index("--out-dir")
             if idx + 1 < len(argv):
                 out_dir = argv[idx + 1]
-        out = package_release(_existing_project(path), out_dir=Path(out_dir) if out_dir else None)
+        proj = _existing_project(path)
+        out = package_release(proj, out_dir=Path(out_dir) if out_dir else None)
         print(_status_panel("package", _meta_block("verified", "Packaged", str(out)), command="package"))
+        _advance_pipeline_if_artifact(proj, "dist")
+        _advance_pipeline_if_artifact(proj, "tmp/release_manifest.txt")
         return 0
 
     if command == "install":
@@ -1754,6 +1766,18 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if command == "pipeline":
+        if len(argv) > 1 and argv[1] == "tune":
+            phase = argv[2] if len(argv) > 2 else None
+            path = argv[3] if len(argv) > 3 and argv[2] else argv[2] if len(argv) > 2 else "."
+            if phase not in PIPELINE_PHASES:
+                print_help(is_subcommand=True, command="pipeline", error="Expected: pipeline tune <phase> [path]")
+                return 2
+            proj = _existing_project(path)
+            meta = PIPELINE_META.get(phase, {})
+            rows = _meta_block("ok", f"Tune: {meta.get('name', phase)}", meta.get("hint", ""))
+            rows += ["", f"{C_BOLD_WHITE}Example:{C_RESET}", f"  - {meta.get('next', '')}", f"{C_BOLD_WHITE}Artifact:{C_RESET} {meta.get('artifact', '')}"]
+            print(_status_panel("pipeline-tune", rows, command="pipeline tune"))
+            return 0
         path = argv[1] if len(argv) > 1 else "."
         proj = _existing_project(path)
         print(print_pipeline_status(proj))
@@ -1839,6 +1863,10 @@ def main(argv: list[str] | None = None) -> int:
             "",
             f"{C_BOLD_WHITE}Next Steps:{C_RESET}",
         ] + [f"  - {item}" for item in preset.get("next_steps", [])]
+        _advance_pipeline_if_artifact(proj, f"src/{mod_type}")
+        _advance_pipeline_if_artifact(proj, "src/xml_snippets")
+        _advance_pipeline_if_artifact(proj, "src/ts4script")
+        _advance_pipeline_if_artifact(proj, "src/package")
         if note_kv:
             panel += [
                 "",
@@ -1861,6 +1889,7 @@ def main(argv: list[str] | None = None) -> int:
             content = changelog.read_text(encoding="utf-8") + "\n" + content
         _write(changelog, content)
         print(_status_panel("changelog", _meta_block("verified", "Created", str(changelog)), command="changelog"))
+        _advance_pipeline_if_artifact(proj, "CHANGELOG.md")
         return 0
 
     if command == "wizard":
@@ -1938,6 +1967,26 @@ def main(argv: list[str] | None = None) -> int:
             f"{C_BOLD_WHITE}Next Steps:{C_RESET}",
         ] + [f"  - {item}" for item in preset.get("next_steps", [])]
         print(_status_panel("wizard", panel, command="wizard"))
+        _advance_pipeline_if_artifact(proj, f"src/{mod_type}")
+        _advance_pipeline_if_artifact(proj, "CHANGELOG.md")
+        return 0
+
+    if command == "pipeline":
+        if len(argv) > 1 and argv[1] == "tune":
+            phase = argv[2] if len(argv) > 2 else None
+            path = argv[3] if len(argv) > 3 and argv[2] else argv[2] if len(argv) > 2 else "."
+            if phase not in PIPELINE_PHASES:
+                print_help(is_subcommand=True, command="pipeline", error="Expected: pipeline tune <phase> [path]")
+                return 2
+            proj = _existing_project(path)
+            meta = PIPELINE_META.get(phase, {})
+            rows = _meta_block("ok", f"Tune: {meta.get('name', phase)}", meta.get("hint", ""))
+            rows += ["", f"{C_BOLD_WHITE}Example:{C_RESET}", f"  - {meta.get('next', '')}", f"{C_BOLD_WHITE}Artifact:{C_RESET} {meta.get('artifact', '')}"]
+            print(_status_panel("pipeline-tune", rows, command="pipeline tune"))
+            return 0
+        path = argv[1] if len(argv) > 1 else "."
+        proj = _existing_project(path)
+        print(print_pipeline_status(proj))
         return 0
 
     print_help(is_subcommand=True, command=command, error=f"Unknown command: {command}")
