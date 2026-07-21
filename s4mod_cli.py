@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import sys
 import zipfile
@@ -944,20 +945,20 @@ def dependency_notes(mod_type: str) -> list[str]:
 
 
 TUNING_TAG_RULES = {
-    "career": ["career_name", "entry_level", "career_levels"],
+    "career": ["career_name", "entry_level", "career_levels", "career_icon"],
     "trait": ["trait_name", "trait_description"],
-    "buff": ["buff_name", "buff_description", "mood_type"],
-    "interaction": ["interaction_name", "display_name"],
-    "event": ["label", "description", "event_type"],
-    "achievement": ["achievement_name", "description"],
-    "aspiration": ["aspiration_name", "description"],
-    "whim": ["whim_name", "description"],
-    "club": ["club_name", "description"],
-    "holiday": ["holiday_name", "description"],
-    "loot_action": ["loot_action_name", "description"],
-    "testset": ["test_set_name", "description"],
-    "relationship": ["relationship_name", "description"],
-    "skill": ["skill_name", "description"],
+    "buff": ["buff_name", "buff_description", "mood_type", "mood_weight", "animation_style"],
+    "interaction": ["interaction_name", "pie_menu_priority", "interaction_distance"],
+    "event": ["event_name", "event_type", "duration"],
+    "achievement": ["achievement_name", "hidden"],
+    "aspiration": ["aspiration_name"],
+    "whim": ["whim_name", "whim_description", "priority", "duration"],
+    "club": ["club_name", "club_icon"],
+    "holiday": ["holiday_name", "holiday_icon"],
+    "loot_action": ["loot_action_name"],
+    "testset": ["test_set_name"],
+    "relationship": ["relationship_name", "relationship_value"],
+    "skill": ["skill_name", "skill_level"],
     "motive": ["motive_name", "decay_rate", "threshold"],
 }
 
@@ -1952,7 +1953,13 @@ def main(argv: list[str] | None = None) -> int:
             updated = updated.replace("<T n=\"icon_resource\">0x00000000</T>", "<T n=\"icon_resource\">" + _tuning_instance(xml.stem, "_icon") + "</T>")
             updated = updated.replace("<U n=\"club_icon\">0x00000000</U>", "<U n=\"club_icon\">" + _tuning_instance(xml.stem, "_icon") + "</U>")
             updated = updated.replace("<U n=\"holiday_icon\">0x00000000</U>", "<U n=\"holiday_icon\">" + _tuning_instance(xml.stem, "_icon") + "</U>")
-            updated = updated.replace("<U n=\"relationship_value\">0</U>", "<U n=\"relationship_value\">0</U>")
+            idx = 0
+            def _replace_u(match):
+                nonlocal idx
+                suffix = f"_item{idx}"
+                idx += 1
+                return "<U>" + _tuning_instance(xml.stem, suffix) + "</U>"
+            updated = re.sub(r"<U>0x00000000</U>", _replace_u, updated)
             if updated != txt:
                 _write(xml, updated)
                 touched.append(str(xml.relative_to(proj)))
