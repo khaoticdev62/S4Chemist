@@ -1,9 +1,0 @@
-pyproject.toml
-readme.txt
-s4mod_cli.py
-sims4_mod_cli.egg-info/PKG-INFO
-sims4_mod_cli.egg-info/SOURCES.txt
-sims4_mod_cli.egg-info/dependency_links.txt
-sims4_mod_cli.egg-info/entry_points.txt
-sims4_mod_cli.egg-info/requires.txt
-sims4_mod_cli.egg-info/top_level.txt
