@@ -165,6 +165,22 @@ async def _wait_for(predicate, timeout=5.0):
     return predicate()
 
 
+def test_tui_layout_scales_with_desktop_size(tmp_project):
+    cli = _load_cli()
+
+    async def measure(w, h):
+        app = cli._make_tui_app(str(tmp_project))
+        async with app.run_test(size=(w, h)) as pilot:
+            await pilot.pause()
+            return app.query_one("#sidebar").region.width, app.query_one("#pipeline").region.height
+
+    small_w, small_h = _run(measure(100, 24))
+    big_w, big_h = _run(measure(160, 50))
+    assert big_w > small_w, "sidebar must grow on desktop"
+    assert big_h > small_h, "pipeline table must grow on desktop"
+    assert small_w >= 22, "sidebar keeps a usable minimum on small consoles"
+
+
 def test_tui_selects_stay_collapsed(tmp_project):
     """Regression: textual 8's Horizontal base leaks height:1fr into SelectCurrent,
     stretching Selects to fill the tab and hiding the form. Both Selects must stay

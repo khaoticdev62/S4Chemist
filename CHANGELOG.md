@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.6 — 2026-07-22
+
+### Changed
+- Desktop-sized TUI layout: the sidebar now scales with the window (20% width, min 22,
+  max 38 columns) instead of a fixed 30; the pipeline table fills its tab (`1fr`) instead of
+  being capped at 70% height; phase detail capped at 6 rows; the Create form is capped at 90
+  columns so it stays tidy on ultrawide monitors.
+
 ## 0.9.5 — 2026-07-22
 
 ### Fixed

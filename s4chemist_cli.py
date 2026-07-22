@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.9.5"
+__version__ = "0.9.6"
 
 PIPELINE_PHASES = [
     "concept",
@@ -2339,13 +2339,13 @@ def _cmd_wizard(argv: list[str]) -> int:
 # ── Textual TUI (full dashboard; launched via `tui`) ───────────────────────
 
 _TUI_CSS = """
-#sidebar { width: 30; padding: 1; border-right: tall $boost; }
+#sidebar { width: 20%; min-width: 22; max-width: 38; padding: 1; border-right: tall $boost; }
 #sidebar Label { margin-top: 1; color: $text-muted; text-style: bold; }
 #sidebar Button { width: 100%; margin-top: 1; }
 #status-bar { padding: 0 1; background: $boost; border-bottom: tall $boost; }
-DataTable { height: auto; max-height: 70%; border: round $boost; }
+DataTable { height: 1fr; border: round $boost; }
 DataTable > .datatable--header { text-style: bold; }
-#phase-detail { padding: 0 1; border-top: tall $boost; height: auto; }
+#phase-detail { padding: 0 1; border-top: tall $boost; height: auto; max-height: 6; }
 #preview { border-left: tall $boost; }
 #preview-title { padding: 0 1; color: $text-muted; text-style: bold; }
 RichLog { height: 1fr; }
@@ -2353,7 +2353,7 @@ Horizontal { height: 1fr; }
 Input:focus { border: round $secondary; }
 Select:focus { border: round $secondary; }
 SelectCurrent { height: auto; }  /* textual 8: Horizontal base leaks height:1fr into SelectCurrent */
-#create-form { padding: 1 2; }
+#create-form { padding: 1 2; max-width: 90; }
 #create-form Label { margin-top: 1; color: $text-muted; text-style: bold; }
 #w_params_scroll { height: 1fr; min-height: 5; border: round $boost; padding: 0 1; }
 #w_error { color: $error; text-style: bold; }
