@@ -12,7 +12,14 @@ def test_help_shows_commands(repo_root):
 def test_version_prints(repo_root):
     stdout, _, rc = cli_runner(["version"], repo_root)
     assert rc == 0
-    assert "s4chemist_cli v0.1.1" in stdout
+    assert f"s4chemist_cli v{_pyproject_version(repo_root)}" in stdout
+
+
+def _pyproject_version(repo_root) -> str:
+    for line in (repo_root / "pyproject.toml").read_text(encoding="utf-8").splitlines():
+        if line.startswith("version"):
+            return line.split("=", 1)[1].strip().strip('"')
+    raise AssertionError("version not found in pyproject.toml")
 
 
 def test_doctor_checks_environment(repo_root):

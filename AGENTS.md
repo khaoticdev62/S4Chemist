@@ -68,9 +68,8 @@ python s4chemist_cli.py doctor
 ## Architecture
 
 ### Command dispatch
-`main()` (near the bottom of `s4chemist_cli.py`) dispatches through the `COMMANDS` registry (not
-argparse subparsers, despite `argparse` being imported): a dict of `Command` entries mapping each
-command name to a `_cmd_<name>(argv) -> int` handler. Each handler parses its own flags positionally,
+`main()` (near the bottom of `s4chemist_cli.py`) dispatches through the `COMMANDS` registry: a
+dict of `Command` entries mapping each command name to a `_cmd_<name>(argv) -> int` handler. Each handler parses its own flags positionally,
 calls the relevant function, prints a `_status_panel(...)` block, and returns an int exit code. Help
 text is data-driven: `Command.args` feeds the ARGS section of subcommand help and `Command.help_lines`
 feeds the main COMMANDS panel. When adding a new top-level command, add a `_cmd_<name>` handler and a

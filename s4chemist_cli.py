@@ -6,7 +6,6 @@ command panel tables, and uniform subcommand help blocks.
 """
 from __future__ import annotations
 
-import argparse
 import os
 import re
 import shutil
@@ -19,9 +18,11 @@ from typing import Callable, Iterable
 
 if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     try:
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
     except (AttributeError, UnicodeError):
         pass
+
+__version__ = "0.2.0"
 
 PIPELINE_PHASES = [
     "concept",
@@ -99,7 +100,7 @@ def pipeline_state_path(proj: Path) -> Path:
 
 def load_pipeline_state(proj: Path) -> dict:
     path = pipeline_state_path(proj)
-    state = {"phase_index": 0, "locked": [], "notes": {}}
+    state: dict = {"phase_index": 0, "locked": [], "notes": {}}
     if not path.exists():
         return state
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -292,12 +293,6 @@ def _tuning_instance(name: str, suffix: str = "") -> str:
     return hex(_fnv1a_64(seed) & 0x7FFFFFFFFFFFFFFF)
 
 
-_STBL_REPLACEMENTS = {
-    "0x00000000": "STUB_DISPLAY_NAME",
-    "0x00000000": "STUB_DESCRIPTION",
-}
-
-
 def _rewrite_stbl_placeholders(stem: str, text: str) -> tuple[str, str]:
     updated = text
     mappings = []
@@ -324,7 +319,6 @@ def _status_label(ok: bool, text: str) -> str:
 
 
 def _status_panel(headline: str, body: Iterable[str], *, command: str = "") -> str:
-    color = C_GREEN if "OK" in headline else C_RED if "FAIL" in headline or "ERROR" in headline else C_YELLOW
     headline_text = headline.replace("accessibility_verdict: true", "VERDICT").replace("game-python", "GAME PYTHON")
     headline_display = f"{C_BLUE}{headline_text}{C_RESET}"
     rule = "─" * 20
@@ -787,7 +781,7 @@ def _apply_params(proj: Path, mod_type: str, name: str, params: dict[str, str]) 
             _write(xml_path, txt)
 
 
-WIZARD_PRESETS = {
+WIZARD_PRESETS: dict[str, dict] = {
     "career": {
         "params": ["label", "description", "pay", "level_title"],
         "defaults": {"pay": "500", "level_title": "Level 1"},
@@ -987,7 +981,6 @@ def wizard_ask(prompt: str, default: str = "") -> str:
 
 
 def new_career(proj: Path, name: str) -> Path:
-    label = name
     d = proj / "src" / "xml_snippets" / f"{name}_career"
     _write(
         d / f"{name}_career.xml",
@@ -1681,7 +1674,7 @@ def print_help(*, is_subcommand=False, command="", error="") -> None:
     panel = []
     panel.extend(_section("PORTABLE SIMS 4 MOD CONSTRUCTION CLI", []))
     if error:
-        panel.extend(_section(f"\033[1;31mERROR\033[0m", [error]))
+        panel.extend(_section("\033[1;31mERROR\033[0m", [error]))
 
     if is_subcommand:
         panel.extend(_section(f"COMMAND \033[1;37m{command}\033[0m", []))
@@ -1824,7 +1817,7 @@ def _cmd_doctor(argv: list[str]) -> int:
 
 
 def _cmd_version(argv: list[str]) -> int:
-    print(_status_panel("version", _meta_block("ok", "Version", "s4chemist_cli v0.1.1"), command="version"))
+    print(_status_panel("version", _meta_block("ok", "Version", f"s4chemist_cli v{__version__}"), command="version"))
     return 0
 
 

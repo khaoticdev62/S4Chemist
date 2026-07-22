@@ -1,5 +1,4 @@
 import zipfile
-from pathlib import Path
 
 from tests.utils import cli_runner
 

@@ -19,17 +19,19 @@ WHAT YOU NEED
 - No extra packages required
 
 SHORTCUT
-SK="C:\Users\thecr\s4chemist\s4chemist_cli.py"
+SK="C:\Users\thecr\sims4-mod-cli\s4chemist_cli.py"
+(or just run `python s4chemist_cli.py ...` from this folder)
 
 COMMAND REFERENCE
 - python "$SK" init MyMod
 - python "$SK" new <project> <kind> <name>
 - python "$SK" generate <type> <name> [--param key=value]
-- python "$SK" wizard <type> [name]
-- python "$SK" validate [path]
-- python "$SK" build [path]
+- python "$SK" wizard <type> [name] [--param key=value]
+- python "$SK" validate [path] [--strict]
+- python "$SK" build [path] [--release]
+- python "$SK" package [path] [--out-dir <dir>]
 - python "$SK" changelog [path]
-- python "$SK" install [path]
+- python "$SK" install [path] [--to-dir <dir>]   (or set S4_MODS_DIR)
 - python "$SK" doctor
 - python "$SK" version
 
@@ -50,6 +52,8 @@ WIZARD FLOW
 2. Run: python "$SK" wizard career NightShift
 3. Answer the prompts; defaults are shown in brackets
 4. It creates the project if needed, writes files, and prints Brain Advice, Dependencies, and Next Steps
+5. Scripting it: when input is not a terminal, the wizard skips prompts and uses defaults plus
+   any --param key=value overrides (pass the name as an argument or --param name=...)
 
 SUPPORTED MOD TYPES
 career, trait, buff, interaction, event, achievement,
@@ -66,7 +70,8 @@ WHAT THE OUTPUT MEANS
 TROUBLESHOOTING
 - "Not a valid project": run init or wizard in that folder first
 - "Unknown kind": check spelling; use one of the supported types above
-- "MISSING Sims 4 Documents": install Sims 4 or set path manually
+- "MISSING Sims 4 Documents": install Sims 4 or set S4_MODS_DIR to your Mods folder
+- validate lists one actionable line per issue; --strict adds placeholder checks (docs/validation.md)
 
 NEXT MOVES
 - Save this guide to your notes

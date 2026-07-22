@@ -9,14 +9,16 @@ DISTRIBUTION FILES
 
 CLI TOOL RELEASE ZIP CONTENTS
 (the portable distribution archive for S4Chemist itself, e.g. the PyInstaller build)
-- s4chemist_cli.py
-- OWNERS-GUIDE.txt
-- docs/sims4-mod-types.md
+- s4chemist_cli.exe        (PyInstaller build; double-clickable)
+- s4chemist_cli.py         (same CLI, for python users)
+- readme.txt / USAGE.md / OWNERS-GUIDE.txt / CHANGELOG.md
+- docs/sims4-mod-types.md, docs/validation.md, docs/packaging.md
 
 CREATE CLI TOOL RELEASE ZIP
 1. Open terminal at the repo root
-2. Run: pyinstaller s4chemist_cli.spec
-3. Zip the dist/ output, or hand-assemble the files listed above.
+2. Run: pyinstaller s4chemist_cli.spec --clean --noconfirm
+3. Zip dist/s4chemist_cli.exe together with the docs listed above, or hand-assemble
+   the files listed above. The release/ folder mirrors this layout.
 
 MOD PROJECT BUILD/PACKAGE OUTPUT
 `build`/`package` zip up a mod *project* directory (created via `init`), not the

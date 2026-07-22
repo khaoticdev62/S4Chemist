@@ -33,13 +33,17 @@ If `doctor` says `MISSING Sims 4 Documents`, install The Sims 4 or create the fo
 ## Using the CLI
 - `s4chemist_cli init <name>` — create a new mod project
 - `s4chemist_cli new . <kind> <name>` — add a mod artifact
-- `s4chemist_cli validate .` — check XML/packaging hygiene
+- `s4chemist_cli validate .` — check XML/packaging hygiene (add `--strict` to also flag
+  placeholder tuning ids and template values; see `docs/validation.md`)
 - `s4chemist_cli build .` — create `dist/*.zip`
-- `s4chemist_cli install .` — copy to detected Mods folder
+- `s4chemist_cli install .` — copy to detected Mods folder (override with `--to-dir <dir>`
+  or the `S4_MODS_DIR` environment variable)
 
 ## Troubleshooting
 - `doctor` shows `MISSING Mods Folder`: create `Documents\Electronic Arts\The Sims 4\Mods`
-- `validate` shows issues: check `src/xml_snippets/*/*.xml` for missing tuning tags
+  or point `S4_MODS_DIR` at your real Mods folder
+- `validate` shows issues: each line names the file and the fix; `docs/validation.md`
+  lists every check
 - Script mods not loading: confirm script mods are enabled in-game
 
 ## Support
