@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.0 — 2026-07-22
+
+### Added
+- TUI content completion: Init Project and Install buttons, a Pipeline section (Next Actions,
+  Unlock Phase, Reset), and full command-palette coverage (init/install/pipeline actions/
+  game-python/version/help alongside the existing entries)
+- `tests/test_e2e.py`: real-mod end-to-end lifecycle — init, config edit, career+buff+
+  interaction scaffolds, validate/strict, tune-ids (zero `0x00000000` left), build (zip
+  integrity + contents), package, install to a Mods folder, pipeline + changelog; plus a
+  non-interactive wizard E2E
+- Docs synced to the current UI: USAGE.md dashboard guide, OWNERS-GUIDE.txt DASHBOARD
+  section, readme.txt, and agent-facing architecture notes
+
 ## 0.9.6 — 2026-07-22
 
 ### Changed

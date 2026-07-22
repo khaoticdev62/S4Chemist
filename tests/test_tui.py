@@ -181,6 +181,56 @@ def test_tui_layout_scales_with_desktop_size(tmp_project):
     assert small_w >= 22, "sidebar keeps a usable minimum on small consoles"
 
 
+def test_tui_pipeline_buttons_dispatch(tmp_project):
+    cli = _load_cli()
+
+    async def go():
+        app = cli._make_tui_app(str(tmp_project))
+        async with app.run_test(size=(140, 40)) as pilot:
+            from textual.widgets import Button
+            app.query_one("#pipeline-unlock", Button).press()
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            text = "\n".join(app.history)
+            assert "pipeline-unlock" in text
+            assert "Unlocked" in text or "Blocked" in text
+
+    _run(go())
+
+
+def test_tui_init_button_scaffolds_project(tmp_path):
+    cli = _load_cli()
+
+    async def go():
+        target = tmp_path / "FreshMod"
+        app = cli._make_tui_app(str(target))
+        async with app.run_test(size=(140, 40)) as pilot:
+            from textual.widgets import Button
+            app.query_one("#init", Button).press()
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+        assert (target / "s4modconfig.yaml").exists()
+
+    _run(go())
+
+
+def test_tui_palette_covers_full_command_set(tmp_project):
+    cli = _load_cli()
+
+    async def go():
+        app = cli._make_tui_app(str(tmp_project))
+        async with app.run_test(size=(120, 40)):
+            provider = next(c(app.screen) for c in type(app).COMMANDS if c.__name__ == "S4Commands")
+            hits = [hit async for hit in provider.discover()]
+            labels = [str(hit.text or hit.match_display) for hit in hits]
+            for expected in ("Validate", "Build", "Package", "changelog", "Tune IDs", "Init",
+                             "Install", "unlock", "reset", "Doctor", "Game Python", "Version",
+                             "Refresh", "guided creation"):
+                assert any(expected.lower() in label.lower() for label in labels), expected
+
+    _run(go())
+
+
 def test_tui_selects_stay_collapsed(tmp_project):
     """Regression: textual 8's Horizontal base leaks height:1fr into SelectCurrent,
     stretching Selects to fill the tab and hiding the form. Both Selects must stay

@@ -1,6 +1,7 @@
 SIM4 MOD CLI OWNER GUIDE
 Project: current checkout containing `s4chemist_cli.py`
 Core file: `s4chemist_cli.py`
+Version: 0.9.6 (see __version__ in s4chemist_cli.py)
 Docs: `docs/sims4-mod-types.md`
 
 WHAT THIS IS
@@ -32,8 +33,26 @@ COMMAND REFERENCE
 - python "$SK" package [path] [--out-dir <dir>]
 - python "$SK" changelog [path]
 - python "$SK" install [path] [--to-dir <dir>]   (or set S4_MODS_DIR)
+- python "$SK" tui [path]   (full dashboard)
 - python "$SK" doctor
 - python "$SK" version
+
+DASHBOARD (TUI)
+- Run: python "$SK" tui [path]   (path defaults to the current folder)
+- Four tabs:
+  - Pipeline: live phase table plus detail for the selected phase
+  - Create: guided mod creation form — type picker with all 18 kinds, name input,
+    per-type parameter fields, inline "name is required" check, Create button
+  - Files: lazy directory tree with syntax-highlighted preview
+  - Log: output stream of every command you run
+- Sidebar: project path box, Init Project, Validate/Build/Package/Changelog/Tune IDs/
+  Install/Doctor buttons, Pipeline actions (Next Actions/Unlock Phase/Reset),
+  a Create button that jumps to the Create tab, and a quick Generate form
+- Status bar shows the project, current phase, and a progress bar
+- Guided creation runs against the project path shown in the dashboard, not your
+  terminal folder
+- Keys: q quit, r refresh, Ctrl+P command palette
+- Layout scales with window size (sidebar is 20% of width, 22-38 columns)
 
 DECISION TABLE
 I want to...                        Use this
@@ -65,7 +84,10 @@ WHAT THE OUTPUT MEANS
 - [VERIFIED] = tool exercised the workflow successfully
 - [LOCAL] = needs your PC-specific path or setting
 - [OK] Validation — 0 issues = clean project
-- Built — ...zip = packaged release file path
+- Built — ...zip = packaged release file path (report includes archive size + file count)
+- Panel borders are state-colored: red = fail, green = ok, yellow = local, blue = info
+- Colors turn off when output is piped, when NO_COLOR is set, or with --no-color;
+  S4_ASCII=1 forces ASCII glyphs
 
 TROUBLESHOOTING
 - "Not a valid project": run init or wizard in that folder first

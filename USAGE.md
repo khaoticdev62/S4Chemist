@@ -8,8 +8,9 @@ This guide is for players and modders who want to use S4Chemist-generated mods.
 1. Download `S4Chemist-portable-*.zip` from the latest GitHub release.
 2. Extract it anywhere, e.g. `C:\Tools\S4Chemist`.
 3. Open that folder and double-click `s4chemist_cli.exe` — it opens an arrow-key menu.
-   Pick a command, answer its prompts, or choose "Type a command..." for a prompt with
-   history and tab-completion. Esc backs out; "Exit" quits.
+   Pick a command (including `tui` for the full dashboard), answer its prompts, or choose
+   "Type a command..." for a prompt with history and tab-completion. Esc backs out;
+   "Exit" quits.
 
 If the window closes immediately, open Command Prompt in that folder and run:
 - `python s4chemist_cli.py doctor`
@@ -43,8 +44,18 @@ If `doctor` says `MISSING Sims 4 Documents`, install The Sims 4 or create the fo
 - `s4chemist_cli build .` — create `dist/*.zip`
 - `s4chemist_cli install .` — copy to detected Mods folder (override with `--to-dir <dir>`
   or the `S4_MODS_DIR` environment variable)
-- `s4chemist_cli tui .` — open the full dashboard (live pipeline table, one-click commands,
-  generate form, log pane)
+- `s4chemist_cli tui .` — open the full dashboard:
+  - Pipeline tab: live phase table with per-phase detail
+  - Create tab: guided mod creation (all 18 types, per-type parameter fields,
+    inline name-required check) — it runs against the project path shown in the
+    dashboard, not your terminal folder
+  - Files tab: lazy directory tree with syntax-highlighted preview
+  - Log tab: output of every command you run
+  - Sidebar: project path + Init Project, one-click Validate/Build/Package/Changelog/
+    Tune IDs/Install/Doctor, Pipeline actions (Next/Unlock/Reset), a Create shortcut,
+    and a quick Generate form; the status bar shows the project,
+    current phase, and progress
+  - Keys: `q` quit, `r` refresh, `Ctrl+P` command palette
 
 ## Troubleshooting
 - `doctor` shows `MISSING Mods Folder`: create `Documents\Electronic Arts\The Sims 4\Mods`

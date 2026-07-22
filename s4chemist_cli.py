@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.9.6"
+__version__ = "0.10.0"
 
 PIPELINE_PHASES = [
     "concept",
@@ -2394,7 +2394,15 @@ def _make_tui_app(project: str = "."):
                 ("Package release zip", ["package", proj]),
                 ("Add changelog entry", ["changelog", proj]),
                 ("Tune IDs", ["tune-ids", proj]),
+                ("Init project here", ["init", proj]),
+                ("Install to Mods folder", ["install", proj]),
+                ("Pipeline: next actions", ["pipeline-next", proj]),
+                ("Pipeline: unlock phase", ["pipeline-unlock", proj]),
+                ("Pipeline: reset", ["pipeline-reset", proj]),
                 ("Doctor (environment checks)", ["doctor"]),
+                ("Game Python check", ["game-python"]),
+                ("Version", ["version"]),
+                ("Help", ["help"]),
                 ("Refresh pipeline table", "refresh"),
                 ("Open guided creation tab", "wizard"),
             ]
@@ -2449,14 +2457,20 @@ def _make_tui_app(project: str = "."):
                 with VerticalScroll(id="sidebar"):
                     yield Label("◆ PROJECT")
                     yield Input(value=project, placeholder="project path", id="project")
+                    yield Button("Init Project", id="init")
                     yield Label("◆ COMMANDS")
                     yield Button("Validate", id="validate", variant="primary")
                     yield Button("Build", id="build", variant="primary")
                     yield Button("Package", id="package", variant="primary")
                     yield Button("Changelog", id="changelog")
                     yield Button("Tune IDs", id="tune-ids")
+                    yield Button("Install", id="install")
                     yield Button("Doctor", id="doctor")
                     yield Button("Create", id="open-wizard", variant="warning")
+                    yield Label("◆ PIPELINE")
+                    yield Button("Next Actions", id="pipeline-next")
+                    yield Button("Unlock Phase", id="pipeline-unlock")
+                    yield Button("Reset", id="pipeline-reset", variant="error")
                     yield Label("◆ GENERATE")
                     yield Select([(k, k) for k in MOD_FACTORIES], value="trait", id="mod_type")
                     yield Input(placeholder="module/object name", id="gen_name")
@@ -2692,6 +2706,26 @@ def _make_tui_app(project: str = "."):
         @on(Button.Pressed, "#doctor")
         def _doctor(self) -> None:
             self.run_command(["doctor"])
+
+        @on(Button.Pressed, "#init")
+        def _init(self) -> None:
+            self.run_command(["init", self._proj()])
+
+        @on(Button.Pressed, "#install")
+        def _install(self) -> None:
+            self.run_command(["install", self._proj()])
+
+        @on(Button.Pressed, "#pipeline-next")
+        def _pipeline_next(self) -> None:
+            self.run_command(["pipeline-next", self._proj()])
+
+        @on(Button.Pressed, "#pipeline-unlock")
+        def _pipeline_unlock(self) -> None:
+            self.run_command(["pipeline-unlock", self._proj()])
+
+        @on(Button.Pressed, "#pipeline-reset")
+        def _pipeline_reset(self) -> None:
+            self.run_command(["pipeline-reset", self._proj()])
 
         @on(Button.Pressed, "#open-wizard")
         def _open_wizard(self) -> None:
