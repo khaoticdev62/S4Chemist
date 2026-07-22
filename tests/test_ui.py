@@ -32,6 +32,32 @@ def run_cli(args, cwd, env_extra=None):
     )
 
 
+def test_help_shows_brand_banner():
+    stdout, _, rc = run_cli(["--help"], REPO_ROOT)
+    assert rc == 0
+    assert "S4CHEMIST" in stdout
+    assert "⚗" in stdout
+    assert "▸" in stdout  # section glyph
+
+
+def test_panel_border_style_follows_state():
+    sys.path.insert(0, str(REPO_ROOT))
+    import s4chemist_cli as cli
+
+    assert cli._panel_border_style(cli._meta_block("fail", "X", "y")) == "fail"
+    assert cli._panel_border_style(cli._meta_block("verified", "X", "y")) == "ok"
+    assert cli._panel_border_style(cli._meta_block("ok", "X", "y")) == "ok"
+    assert cli._panel_border_style(cli._meta_block("local", "X", "y")) == "local"
+    assert cli._panel_border_style(["plain"]) == "accent"
+
+
+def test_ascii_mode_brand_fallback():
+    stdout, _, rc = run_cli(["--help"], REPO_ROOT, env_extra={"S4_ASCII": "1"})
+    assert rc == 0
+    assert "⚗" not in stdout and "▸" not in stdout
+    assert "S4CHEMIST" in stdout
+
+
 def test_piped_output_has_no_ansi():
     stdout, _, rc = run_cli(["--help"], REPO_ROOT)
     assert rc == 0

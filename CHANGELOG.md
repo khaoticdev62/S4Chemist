@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0 — 2026-07-22
+
+Deep UI refinement, round 3: a bold S4Chemist visual identity across all surfaces.
+
+### Added
+- ⚗ brand banner (`⚗ S4CHEMIST · Portable Sims 4 Mod Construction CLI vX.Y.Z`) on the help
+  screen and as a splash panel when the arrow-key menu launches (with key hints); ASCII
+  fallback glyphs on legacy consoles
+- State-colored panel borders: fail/blocked = red, ok/verified = green, local = yellow,
+  info = accent blue — outcomes are readable before you read a word
+- Section glyph markers (`▸`) in help sections; TUI sidebar sections get `◆` labels, the
+  status bar gets the brand glyph, and the TUI header shows a subtitle
+- Receipt-style generate/wizard summaries (aligned Type/Name/Path rows)
+
 ## 0.8.1 — 2026-07-22
 
 ### Fixed

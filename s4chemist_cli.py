@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.8.1"
+__version__ = "0.9.0"
 
 PIPELINE_PHASES = [
     "concept",
@@ -351,6 +351,18 @@ def _prompt() -> str:
     return f"[glyph]{_glyph()}[/] "
 
 
+def _brand_glyph() -> str:
+    return "*" if _ascii_mode() else "⚗"
+
+
+def _banner_line() -> str:
+    """The one-line S4Chemist brand banner used on help, splash, and headers."""
+    return (
+        f"[glyph]{_brand_glyph()}[/] [head]S4CHEMIST[/] [muted]·[/] "
+        f"[accent]Portable Sims 4 Mod Construction CLI[/] [muted]v{__version__}[/]"
+    )
+
+
 def _esc(text: object) -> str:
     """Escape user-derived content so it cannot corrupt Rich markup."""
     return _escape_markup(str(text))
@@ -416,22 +428,37 @@ _META_TAGS = {
 }
 
 
+def _panel_border_style(body: Iterable) -> str:
+    """Pick a border color from the panel's content: fail=red, ok/verified=green,
+    local=yellow, otherwise the accent blue. Makes outcomes readable at a glance."""
+    text = "\n".join(item for item in body if isinstance(item, str))
+    if "[fail]" in text or "[blocked]" in text:
+        return "fail"
+    if "[ok]" in text or "[verified]" in text:
+        return "ok"
+    if "[local]" in text:
+        return "local"
+    return "accent"
+
+
 def _status_panel(headline: str, body: Iterable, *, command: str = "", hints: bool = False) -> str:
-    """Render the Hermes-style panel (auto-sized, closed box).
+    """Render the Hermes-style panel (auto-sized, closed box, state-colored border).
 
     Body items may be Rich-markup strings or Rich renderables (e.g. Table).
     User-derived strings must be escaped with `_esc()` (already handled by
     `_meta_block`/`_kv_block`). Footer hint lines are only shown when
     `hints=True` (help and error panels, where recovery guidance matters).
     """
+    body = list(body)
+    border_style = _panel_border_style(body)
     footer_command = command or headline.lower()
     items = [Text.from_markup(item) if isinstance(item, str) else item for item in body]
     panel = Panel(
         Group(*items),
-        title=f"[ok]s4chemist_cli[/] [head]{'-' if _ascii_mode() else '─'}[/] [accent]{_esc(headline)}[/]",
+        title=f"[ok]{_brand_glyph()} s4chemist_cli[/] [muted]{'-' if _ascii_mode() else '─'}[/] [accent]{_esc(headline)}[/]",
         title_align="left",
         box=_box_style(),
-        border_style="head",
+        border_style=border_style,
         expand=False,
     )
     with _console.capture() as cap:
@@ -464,7 +491,8 @@ def _meta_block(state: str, label: str, detail: str = "") -> list[str]:
 
 
 def _section(title: str, lines: list) -> list:
-    return [f"[head]{title}[/]", *lines]
+    marker = ">" if _ascii_mode() else "▸"
+    return [f"[head]{marker} {title}[/]", *lines]
 
 
 def init_project(name: str) -> Path:
@@ -1813,7 +1841,7 @@ def _commands_table() -> Table:
 
 def print_help(*, is_subcommand=False, command="", error="") -> None:
     panel: list = []
-    panel.extend(_section("PORTABLE SIMS 4 MOD CONSTRUCTION CLI", []))
+    panel.append(_banner_line())
     if error:
         panel.extend(_section("[fail]ERROR[/]", [_esc(error)]))
 
@@ -2072,9 +2100,11 @@ def _cmd_generate(argv: list[str]) -> int:
         state = load_pipeline_state(proj)
         state.setdefault("notes", {}).update(note_kv)
         save_pipeline_state(proj, state)
-    panel = [
-        _meta_block("verified", "Generated", f"{mod_type}: {name}")[0],
-        f"Path: {_esc(_rel_display(d, proj))}",
+    panel = [_meta_block("verified", "Generated", f"{mod_type}: {name}")[0]] + _kv_block([
+        ("Type", _esc(mod_type)),
+        ("Name", _esc(name)),
+        ("Path", _esc(_rel_display(d, proj))),
+    ]) + [
         "",
         "[head]Brain Advice:[/]",
         f"  {advice}",
@@ -2282,9 +2312,11 @@ def _cmd_wizard(argv: list[str]) -> int:
 
     advice = compatibility_advice(mod_type)
     deps = dependency_notes(mod_type)
-    panel = [
-        _meta_block("verified", "Wizard Complete", f"{mod_type}: {name}")[0],
-        f"Path: {_esc(_rel_display(d, proj))}",
+    panel = [_meta_block("verified", "Wizard Complete", f"{mod_type}: {name}")[0]] + _kv_block([
+        ("Type", _esc(mod_type)),
+        ("Name", _esc(name)),
+        ("Path", _esc(_rel_display(d, proj))),
+    ]) + [
         "",
         "[head]Brain Advice:[/]",
         f"  {advice}",
@@ -2467,6 +2499,7 @@ def _make_tui_app(project: str = "."):
     class S4Tui(App):
         CSS = _TUI_CSS
         TITLE = "S4Chemist"
+        SUB_TITLE = "Sims 4 Mod Construction CLI"
         COMMANDS = App.COMMANDS | {S4Commands}
         history: list = []
         BINDINGS = [("q", "quit", "Quit"), ("r", "refresh", "Refresh"), ("ctrl+p", "command_palette", "Palette")]
@@ -2480,9 +2513,9 @@ def _make_tui_app(project: str = "."):
             yield Header()
             with Horizontal():
                 with VerticalScroll(id="sidebar"):
-                    yield Label("Project")
+                    yield Label("◆ PROJECT")
                     yield Input(value=project, placeholder="project path", id="project")
-                    yield Label("Commands")
+                    yield Label("◆ COMMANDS")
                     yield Button("Validate", id="validate", variant="primary")
                     yield Button("Build", id="build", variant="primary")
                     yield Button("Package", id="package", variant="primary")
@@ -2490,7 +2523,7 @@ def _make_tui_app(project: str = "."):
                     yield Button("Tune IDs", id="tune-ids")
                     yield Button("Doctor", id="doctor")
                     yield Button("Wizard", id="open-wizard", variant="warning")
-                    yield Label("Generate")
+                    yield Label("◆ GENERATE")
                     yield Select([(k, k) for k in MOD_FACTORIES], value="trait", id="mod_type")
                     yield Input(placeholder="module/object name", id="gen_name")
                     yield Button("Generate", id="generate", variant="success")
@@ -2530,7 +2563,7 @@ def _make_tui_app(project: str = "."):
             proj = Path(self._proj())
             if not (proj / "s4modconfig.yaml").exists():
                 table.add_row("-", "-", "not a project (set path or run init)")
-                bar.update(Text.assemble(("● ", f"bold {HERMES['red']}"), (self._proj(), "bold white"), ("  not a project", HERMES["muted"])))
+                bar.update(Text.assemble((f"{_brand_glyph()} ", f"bold {HERMES['red']}"), (self._proj(), "bold white"), ("  not a project", HERMES["muted"])))
                 self._show_phase_detail(-1)
                 return
             state = load_pipeline_state(proj)
@@ -2548,7 +2581,7 @@ def _make_tui_app(project: str = "."):
             cur_meta = PIPELINE_META[cur]
             bar.update(
                 Text.assemble(
-                    ("● ", f"bold {HERMES['green']}"),
+                    (f"{_brand_glyph()} ", f"bold {HERMES['green']}"),
                     (proj.name, "bold white"),
                     ("   Phase: ", "bold white"),
                     (f"{cur_meta['name']} ", f"bold {HERMES['yellow']}"),
@@ -2990,6 +3023,16 @@ def menu_shell(select: Callable[[str, list[str]], str | None] | None = None) -> 
     """Arrow-key main menu shown on bare TTY launch. `select` injectable for tests."""
     select = select or _menu_select
     visible = [e.name for e in COMMANDS.values() if e.description]
+    splash = Panel(
+        Text.from_markup(
+            _banner_line()
+            + "\n[muted]Arrow keys to choose · Enter to select · Esc to back out[/]"
+        ),
+        box=_box_style(),
+        border_style="accent",
+        expand=False,
+    )
+    _console.print(splash)
     while True:
         choice = select("S4Chemist - pick a command", visible + [MENU_SHELL, MENU_EXIT])
         if choice in (None, MENU_EXIT):

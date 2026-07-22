@@ -1,0 +1,3 @@
+# s4mod state: editable only via pipeline commands
+phase_index=3
+locked=concept,requirements,proof

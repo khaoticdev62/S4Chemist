@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- FancyOne trait snippet -->
+<I d="0x00000000">
+  <T n="trait_name">Fancy</T>
+  <T n="trait_description">Replace with trait flavor text.</T>
+  <U n="trait_facial_priority">0</U>
+  <L n="related_skills">
+    <U>0x00000000</U>
+  </L>
+  <L n="related_buffs">
+    <U>0x00000000</U>
+  </L>
+</I>
