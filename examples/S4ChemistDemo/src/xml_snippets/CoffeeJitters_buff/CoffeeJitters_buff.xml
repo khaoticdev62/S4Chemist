@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- CoffeeJitters buff snippet -->
+<I d="0x3f627828c6f21028">
+  <T n="buff_name">CoffeeJitters</T>
+  <T n="buff_description">Replace with buff flavor text.</T>
+  <T n="mood_type">Neutral</T>
+  <U n="mood_weight">1</U>
+  <T n="animation_style">None</T>
+  <L n="buff_commodities">
+    <U>0x51e5f41704257812</U>
+  </L>
+</I>

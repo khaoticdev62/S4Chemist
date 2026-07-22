@@ -3,7 +3,7 @@ requires = ["setuptools>=42.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sims4-mod-cli"
+name = "s4chemist"
 version = "0.1.0-dev"
 description = "Portable Sims 4 Mod Construction CLI with Hermes-style TUI and slot-n-lock pipeline."
 readme = "readme.txt"
@@ -24,15 +24,15 @@ dependencies = []
 dev = ["pyinstaller"]
 
 [project.urls]
-Homepage = "https://github.com/khaoticdev62/sims4-mod-cli"
-Repository = "https://github.com/khaoticdev62/sims4-mod-cli"
+Homepage = "https://github.com/khaoticdev62/s4chemist"
+Repository = "https://github.com/khaoticdev62/s4chemist"
 
 [tool.setuptools]
-py-modules = ["s4mod_cli"]
+py-modules = ["s4chemist_cli"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["s4mod_cli*"]
+include = ["s4chemist_cli*"]
 
 [project.scripts]
-s4mod_cli = "s4mod_cli:main"
+s4chemist_cli = "s4chemist_cli:main"

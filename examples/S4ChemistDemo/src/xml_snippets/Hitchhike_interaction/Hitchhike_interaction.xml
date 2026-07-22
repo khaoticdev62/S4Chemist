@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- Hitchhike interaction snippet -->
+<I d="0x1dc44578e42fc6a9">
+  <T n="interaction_name">Hitchhike</T>
+  <T n="display_name">0x751834e3f4710008</T>
+  <T n="pie_menu_priority">4244884389</T>
+  <U n="interaction_distance">1004594217</U>
+  <L n="available_tests">
+    <V t="user_facing">
+      <U n="user_facing" n="test_specific_filter" s="7484554514949210645,16764977504022179238"/>
+    </V>
+  </L>
+  <L n="super_affordances">
+    <V t="super_affordance"/>
+  </L>
+</I>

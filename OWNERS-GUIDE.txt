@@ -1,7 +1,7 @@
 SIM4 MOD CLI OWNER GUIDE
-Project: C:\Users\thecr\sims4-mod-cli
-Core file: C:\Users\thecr\sims4-mod-cli\s4mod_cli.py
-Docs: C:\Users\thecr\sims4-mod-cli\docs\sims4-mod-types.md
+Project: C:\Users\thecr\s4chemist
+Core file: C:\Users\thecr\s4chemist\s4chemist_cli.py
+Docs: C:\Users\thecr\s4chemist\docs\sims4-mod-types.md
 
 WHAT THIS IS
 This is a portable Sims 4 mod authoring helper. It creates project folders, XML/script scaffolds, packaging zips, and changelogs. It also includes a wizard that asks simple questions and gives modding guidance before you build.
@@ -19,7 +19,7 @@ WHAT YOU NEED
 - No extra packages required
 
 SHORTCUT
-SK="C:\Users\thecr\sims4-mod-cli\s4mod_cli.py"
+SK="C:\Users\thecr\s4chemist\s4chemist_cli.py"
 
 COMMAND REFERENCE
 - python "$SK" init MyMod

@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- GenBuff buff snippet -->
+<I d="0x00000000">
+  <T n="buff_name">GenBuff</T>
+  <T n="buff_description">Replace with buff flavor text.</T>
+  <T n="mood_type">Neutral</T>
+  <U n="mood_weight">1</U>
+  <T n="animation_style">None</T>
+</I>

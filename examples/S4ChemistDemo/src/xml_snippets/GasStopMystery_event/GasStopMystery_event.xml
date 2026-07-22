@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- GasStopMystery event snippet -->
+<I d="0x29f3680f6c03d8b4">
+  <T n="event_name">GasStopMystery</T>
+  <T n="event_type">Social</T>
+  <U n="duration">120</U>
+  <T n="icon_resource">0x4b025a894c5b447c</T>
+  <L n="stakeables">
+    <V t="stakeable_list"/>
+  </L>
+  <L n="actions">
+    <V t="action"/>
+  </L>
+</I>

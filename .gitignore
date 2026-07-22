@@ -1,0 +1,9 @@
+build
+dist
+release
+__pycache__
+tmp
+sims4_mod_cli.egg-info
+*.spec
+*.zip
+*.exe

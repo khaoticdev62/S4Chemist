@@ -27,20 +27,20 @@ Supported mod types:
 - motive
 
 ## Common commands
-- `python s4mod_cli.py --help`
-- `python s4mod_cli.py help <cmd>`
-- `python s4mod_cli.py init <name>`
-- `python s4mod_cli.py new <where> <kind> <name>`
-- `python s4mod_cli.py generate <type> <name> [--param key=value]`
-- `python s4mod_cli.py wizard <type> [name]`
-- `python s4mod_cli.py changelog [path]`
-- `python s4mod_cli.py validate [path]`
-- `python s4mod_cli.py build [path]`
-- `python s4mod_cli.py package [path]`
-- `python s4mod_cli.py pipeline [path]`
-- `python s4mod_cli.py pipeline tune <phase> [path]`
-- `python s4mod_cli.py doctor`
-- `python s4mod_cli.py version`
+- `python s4chemist_cli.py --help`
+- `python s4chemist_cli.py help <cmd>`
+- `python s4chemist_cli.py init <name>`
+- `python s4chemist_cli.py new <where> <kind> <name>`
+- `python s4chemist_cli.py generate <type> <name> [--param key=value]`
+- `python s4chemist_cli.py wizard <type> [name]`
+- `python s4chemist_cli.py changelog [path]`
+- `python s4chemist_cli.py validate [path]`
+- `python s4chemist_cli.py build [path]`
+- `python s4chemist_cli.py package [path]`
+- `python s4chemist_cli.py pipeline [path]`
+- `python s4chemist_cli.py pipeline tune <phase> [path]`
+- `python s4chemist_cli.py doctor`
+- `python s4chemist_cli.py version`
 
 ## Parameter workflow
 Use `--param` to inject labels, descriptions, commands, or tuning notes:
@@ -67,8 +67,8 @@ Use `--param` to inject labels, descriptions, commands, or tuning notes:
 - `install` copies to your detected Sims 4 `Mods` folder.
 
 Examples:
-- `python s4mod_cli.py wizard career NightShift`
-- `python s4mod_cli.py generate trait RoadDog --param description="started on the road"`
-- `python s4mod_cli.py validate .`
-- `python s4mod_cli.py build .`
-- `python s4mod_cli.py pipeline tune tuning .`
+- `python s4chemist_cli.py wizard career NightShift`
+- `python s4chemist_cli.py generate trait RoadDog --param description="started on the road"`
+- `python s4chemist_cli.py validate .`
+- `python s4chemist_cli.py build .`
+- `python s4chemist_cli.py pipeline tune tuning .`

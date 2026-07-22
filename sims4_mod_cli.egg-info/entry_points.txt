@@ -1,0 +1,2 @@
+[console_scripts]
+s4mod_cli = s4mod_cli:main
