@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- CruiseControl testset snippet -->
+<I d="0x7ae4b3c1757e4e94">
+  <T n="test_set_name">CruiseControl</T>
+  <L n="tests">
+    <V t="test"/>
+  </L>
+</I>

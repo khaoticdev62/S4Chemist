@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- NeonFest holiday snippet -->
+<I d="0x4bf2cc3faf523aa8">
+  <T n="holiday_name">NeonFest</T>
+  <U n="holiday_icon">0x402a642e39515340</U>
+  <L n="traditions">
+    <V t="holiday_tradition"/>
+  </L>
+  <L n="decorations">
+    <V t="holiday_decoration"/>
+  </L>
+</I>

@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- RoadRespect relationship snippet -->
+<I d="0x5ef9c33de0bebd02">
+  <T n="relationship_name">RoadRespect</T>
+  <U n="relationship_value">0</U>
+  <L n="related_traits">
+    <U>0x389b2a41033a9150</U>
+  </L>
+</I>

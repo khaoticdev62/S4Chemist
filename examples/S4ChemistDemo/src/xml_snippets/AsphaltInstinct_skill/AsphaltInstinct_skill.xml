@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- AsphaltInstinct skill snippet -->
+<I d="0x567152aa48f46cba">
+  <T n="skill_name">AsphaltInstinct</T>
+  <U n="skill_level">1</U>
+  <L n="skill_effects">
+    <V t="skill_effect"/>
+  </L>
+</I>
