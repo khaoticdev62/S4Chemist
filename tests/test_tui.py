@@ -194,6 +194,31 @@ def test_tui_wizard_modal_type_switch_rebuilds_params(tmp_project):
     _run(go())
 
 
+def test_tui_wizard_modal_buttons_visible_on_small_screen(tmp_project):
+    """Regression: on a short console the modal clipped everything below the type
+    select (no name input, no Create/Cancel). Actions must stay on-screen."""
+    cli = _load_cli()
+
+    async def go():
+        app = cli._make_tui_app(str(tmp_project))
+        async with app.run_test(size=(100, 22)):
+            from textual.widgets import Button, Select
+            app.query_one("#open-wizard", Button).press()
+            assert await _wait_for(lambda: type(app.screen_stack[-1]).__name__ == "WizardScreen")
+            screen = app.screen_stack[-1]
+            assert await _wait_for(lambda: bool(screen.query("#w_create")))
+            screen.query_one("#w_type", Select).value = "career"  # 4 params = worst case
+            assert await _wait_for(
+                lambda: len([w for w in screen.query_one("#w_params").children
+                             if type(w).__name__ == "Input"]) == 4
+            )
+            for wid in ("w_name", "w_create", "w_cancel", "w_error"):
+                region = screen.query_one(f"#{wid}").region
+                assert region.y < 22, f"#{wid} off-screen at y={region.y}"
+
+    _run(go())
+
+
 def test_tui_wizard_modal_creates_artifact(tmp_project, tmp_path):
     cli = _load_cli()
     import os

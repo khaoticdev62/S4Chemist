@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.3 — 2026-07-22
+
+### Fixed
+- Guided mod creation modal clipped its content on normal-height consoles: the form was
+  `height: auto` with no scrolling, so the name input, parameter fields, and the
+  Create/Cancel buttons rendered off-screen and were unreachable. The modal now has a
+  scrollable fields area with the error line and action buttons pinned below it.
+  Regression test asserts visibility on a 22-row screen with the largest param set.
+
 ## 0.9.2 — 2026-07-22
 
 ### Fixed

@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.9.2"
+__version__ = "0.9.3"
 
 PIPELINE_PHASES = [
     "concept",
@@ -2355,7 +2355,9 @@ Select:focus { border: round $secondary; }
 WizardScreen { align: center middle; }
 #wizard-form { width: 64; height: auto; max-height: 90%; padding: 1 2; border: round $primary; background: $surface; }
 #wizard-form Label { margin-top: 1; color: $text-muted; text-style: bold; }
-#wizard-form Button { margin-top: 1; margin-right: 1; }
+#w-fields { height: 1fr; min-height: 5; overflow-y: auto; }
+#w_actions { height: auto; margin-top: 1; }
+#w_actions Button { margin-right: 1; }
 #w_error { color: $error; text-style: bold; }
 """
 
@@ -2390,14 +2392,15 @@ def _make_tui_app(project: str = "."):
         def compose(self) -> ComposeResult:
             with Vertical(id="wizard-form"):
                 yield Label(f"[bold]{_brand_glyph()} Guided mod creation[/]")
-                yield Label("Mod type")
-                yield Select([(k, k) for k in MOD_FACTORIES], value="trait", id="w_type")
-                yield Label("Name (required)")
-                yield Input(placeholder="module/object name", id="w_name")
-                yield Label("Parameters")
-                yield Vertical(id="w_params")
+                with VerticalScroll(id="w-fields"):
+                    yield Label("Mod type")
+                    yield Select([(k, k) for k in MOD_FACTORIES], value="trait", id="w_type")
+                    yield Label("Name (required)")
+                    yield Input(placeholder="module/object name", id="w_name")
+                    yield Label("Parameters")
+                    yield Vertical(id="w_params")
                 yield Label("", id="w_error")
-                with Horizontal():
+                with Horizontal(id="w_actions"):
                     yield Button("Create", id="w_create", variant="success")
                     yield Button("Cancel", id="w_cancel")
 
