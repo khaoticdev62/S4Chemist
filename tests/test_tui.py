@@ -171,7 +171,7 @@ def test_tui_wizard_modal_type_switch_rebuilds_params(tmp_project):
 
     async def go():
         app = cli._make_tui_app(str(tmp_project))
-        async with app.run_test(size=(120, 40)) as pilot:
+        async with app.run_test(size=(120, 40)):
             from textual.containers import Vertical
             from textual.widgets import Button, Select
             app.query_one("#open-wizard", Button).press()
