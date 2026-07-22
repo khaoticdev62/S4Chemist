@@ -58,6 +58,21 @@ def test_ascii_mode_brand_fallback():
     assert "S4CHEMIST" in stdout
 
 
+def test_ascii_mode_survives_wrapped_stdout(monkeypatch):
+    """Regression: Textual replaces sys.stdout with a wrapper lacking .encoding —
+    _ascii_mode must not crash and must stay unicode-capable."""
+    sys.path.insert(0, str(REPO_ROOT))
+    import s4chemist_cli as cli
+
+    class NoEncoding:
+        pass
+
+    monkeypatch.setattr(sys, "stdout", NoEncoding())
+    monkeypatch.delenv("S4_ASCII", raising=False)
+    assert cli._ascii_mode() is False
+    assert cli._brand_glyph() == "⚗"
+
+
 def test_piped_output_has_no_ansi():
     stdout, _, rc = run_cli(["--help"], REPO_ROOT)
     assert rc == 0

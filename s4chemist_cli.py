@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 PIPELINE_PHASES = [
     "concept",
@@ -330,8 +330,12 @@ def _ascii_mode() -> bool:
         return True
     if _console.is_terminal and _console.legacy_windows:
         return True
-    encoding = (sys.stdout.encoding or "").lower()
-    return "utf" not in encoding
+    encoding = getattr(sys.stdout, "encoding", None)
+    if encoding is None:
+        # wrapped stream (e.g. Textual's _PrintCapture): the app renders
+        # unicode itself, so stay in unicode mode
+        return False
+    return "utf" not in encoding.lower()
 
 
 def _box_style() -> box.Box:

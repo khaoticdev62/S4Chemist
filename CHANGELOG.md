@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1 — 2026-07-22
+
+### Fixed
+- Crash in the TUI status bar (`AttributeError: '_PrintCapture' object has no attribute
+  'encoding'`): Textual replaces `sys.stdout` with a wrapper, so `_ascii_mode()` now tolerates
+  streams without an encoding and treats them as unicode-capable.
+
 ## 0.9.0 — 2026-07-22
 
 Deep UI refinement, round 3: a bold S4Chemist visual identity across all surfaces.
