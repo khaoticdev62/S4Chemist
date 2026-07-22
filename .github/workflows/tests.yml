@@ -11,6 +11,9 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -e '.[dev]'
+      - name: DEBUG subprocess capture
+        run: |
+          python -c "import subprocess,sys; r=subprocess.run([sys.executable,'s4chemist_cli.py','version'],capture_output=True,text=True,timeout=60); print('RC',r.returncode); print('STDOUT',repr(r.stdout)); print('STDERR',repr(r.stderr))"
       - run: ruff check s4chemist_cli.py tests
       - run: mypy s4chemist_cli.py
       - run: pytest tests/ -v
