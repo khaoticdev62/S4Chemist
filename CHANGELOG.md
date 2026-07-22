@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1 — 2026-07-22
+
+### Fixed
+- Crash (`DuplicateIds`) when changing the mod type in the TUI wizard form: widget removal is
+  async in Textual, so the rebuilt parameter Inputs must await `remove_children()` before
+  mounting. Regression test switches types both ways.
+
 ## 0.8.0 — 2026-07-22
 
 Deep UI refinement, round 2: typography and layout craftsmanship.

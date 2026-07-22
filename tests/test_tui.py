@@ -165,6 +165,35 @@ async def _wait_for(predicate, timeout=5.0):
     return predicate()
 
 
+def test_tui_wizard_modal_type_switch_rebuilds_params(tmp_project):
+    """Regression: switching mod type must not raise DuplicateIds (remove must be awaited)."""
+    cli = _load_cli()
+
+    async def go():
+        app = cli._make_tui_app(str(tmp_project))
+        async with app.run_test(size=(120, 40)) as pilot:
+            from textual.containers import Vertical
+            from textual.widgets import Button, Select
+            app.query_one("#open-wizard", Button).press()
+            assert await _wait_for(lambda: type(app.screen_stack[-1]).__name__ == "WizardScreen")
+            screen = app.screen_stack[-1]
+            assert await _wait_for(lambda: len(screen.query_one("#w_params", Vertical).children) > 0)
+            screen.query_one("#w_type", Select).value = "career"
+            # career preset: label, description, pay, level_title
+            assert await _wait_for(
+                lambda: len([w for w in screen.query_one("#w_params", Vertical).children
+                             if type(w).__name__ == "Input"]) == 4
+            )
+            # switch back: also clean
+            screen.query_one("#w_type", Select).value = "trait"
+            assert await _wait_for(
+                lambda: len([w for w in screen.query_one("#w_params", Vertical).children
+                             if type(w).__name__ == "Input"]) == 2
+            )
+
+    _run(go())
+
+
 def test_tui_wizard_modal_creates_artifact(tmp_project):
     cli = _load_cli()
     import os

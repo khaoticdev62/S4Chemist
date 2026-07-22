@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 PIPELINE_PHASES = [
     "concept",
@@ -2365,16 +2365,19 @@ def _make_tui_app(project: str = "."):
                     yield Button("Create", id="w_create", variant="success")
                     yield Button("Cancel", id="w_cancel")
 
-        def on_mount(self) -> None:
-            self._build_params()
+        async def on_mount(self) -> None:
+            await self._build_params()
 
         @on(Select.Changed, "#w_type")
-        def _type_changed(self) -> None:
-            self._build_params()
+        async def _type_changed(self) -> None:
+            await self._build_params()
 
-        def _build_params(self) -> None:
-            """(Re)build param inputs for the selected type; guards against the
-            on_mount + Select.Changed double-fire racing remove_children()."""
+        async def _build_params(self) -> None:
+            """(Re)build param inputs for the selected type.
+
+            remove_children() is async in Textual — it must be awaited, otherwise
+            the new Inputs register while the old ones still exist (DuplicateIds).
+            """
             container = self.query_one("#w_params", Vertical)
             mod_type = str(self.query_one("#w_type", Select).value)
             if self._params_built_for == mod_type:
@@ -2385,10 +2388,9 @@ def _make_tui_app(project: str = "."):
             existing = {w.placeholder: w for w in container.children if isinstance(w, Input)}
             if list(existing) == [f for f, _ in wanted]:
                 return
-            for child in list(container.children):
-                child.remove()
+            await container.remove_children()
             for param_field, default in wanted:
-                container.mount(Input(value=default, placeholder=param_field, id=f"w_param_{param_field}"))
+                await container.mount(Input(value=default, placeholder=param_field, id=f"w_param_{param_field}"))
 
         def _param_values(self) -> dict[str, str]:
             values = {}
