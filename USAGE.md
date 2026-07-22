@@ -1,0 +1,46 @@
+# S4Chemist — User Guide
+
+This guide is for players and modders who want to use S4Chemist-generated mods.
+
+## Install S4Chemist CLI
+
+### Windows zip
+1. Download `S4Chemist-portable-*.zip` from the latest GitHub release.
+2. Extract it anywhere, e.g. `C:\Tools\S4Chemist`.
+3. Open that folder and double-click `s4chemist_cli.exe`.
+
+If the window closes immediately, open Command Prompt in that folder and run:
+- `python s4chemist_cli.py doctor`
+
+### pip install
+- `pip install s4chemist`
+
+## Verify install
+- `s4chemist_cli version`
+- `s4chemist_cli doctor`
+
+If `doctor` says `MISSING Sims 4 Documents`, install The Sims 4 or create the folder:
+- `C:\Users\<you>\Documents\Electronic Arts\The Sims 4\Mods`
+
+## Install a mod into The Sims 4
+1. Extract the mod zip.
+2. Copy the mod folder into your Mods folder:
+   - `C:\Users\<you>\Documents\Electronic Arts\The Sims 4\Mods\`
+3. In-game:
+   - Enable script mods in Game Options > Other.
+   - Restart the game if prompted.
+
+## Using the CLI
+- `s4chemist_cli init <name>` — create a new mod project
+- `s4chemist_cli new . <kind> <name>` — add a mod artifact
+- `s4chemist_cli validate .` — check XML/packaging hygiene
+- `s4chemist_cli build .` — create `dist/*.zip`
+- `s4chemist_cli install .` — copy to detected Mods folder
+
+## Troubleshooting
+- `doctor` shows `MISSING Mods Folder`: create `Documents\Electronic Arts\The Sims 4\Mods`
+- `validate` shows issues: check `src/xml_snippets/*/*.xml` for missing tuning tags
+- Script mods not loading: confirm script mods are enabled in-game
+
+## Support
+See `OWNERS-GUIDE.txt` for authoring details and `docs/packaging.md` for release layout.

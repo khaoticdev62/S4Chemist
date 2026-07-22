@@ -1839,7 +1839,7 @@ def main(argv: list[str] | None = None) -> int:
         return doctor_check()
 
     if command == "version":
-        print(_status_panel("version", _meta_block("ok", "Version", "s4chemist_cli v0.1.0-dev"), command="version"))
+        print(_status_panel("version", _meta_block("ok", "Version", "s4chemist_cli v0.1.1"), command="version"))
         return 0
 
     if command == "pipeline":
