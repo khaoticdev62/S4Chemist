@@ -81,20 +81,6 @@ def test_tui_validate_button_streams_to_log(tmp_project):
     _run(go())
 
 
-def test_tui_generate_requires_name(tmp_project):
-    cli = _load_cli()
-
-    async def go():
-        app = cli._make_tui_app(str(tmp_project))
-        async with app.run_test(size=(120, 40)) as pilot:
-            from textual.widgets import Button
-            app.query_one("#generate", Button).press()
-            await pilot.pause()
-            assert "name is required" in "\n".join(app.history)
-
-    _run(go())
-
-
 def test_tui_has_four_tabs(tmp_project):
     cli = _load_cli()
     from textual.widgets import TabbedContent, TabPane
@@ -254,18 +240,37 @@ def test_tui_palette_covers_full_command_set(tmp_project):
             provider = next(c(app.screen) for c in type(app).COMMANDS if c.__name__ == "S4Commands")
             hits = [hit async for hit in provider.discover()]
             labels = [str(hit.text or hit.match_display) for hit in hits]
-            for expected in ("Validate", "Build", "Package", "changelog", "Tune IDs", "Init",
-                             "Install", "unlock", "reset", "Doctor", "Game Python", "Version",
-                             "Refresh", "guided creation"):
+            for expected in ("Validate", "Build", "Package", "Changelog", "Tune Ids", "Init",
+                             "Install", "Unlock", "Reset", "Doctor", "Game Python", "Version",
+                             "Refresh", "Open Guided Creation"):
                 assert any(expected.lower() in label.lower() for label in labels), expected
+
+    _run(go())
+
+
+def test_tui_sidebar_derives_from_registry(tmp_project):
+    """Sidebar workflow buttons are built from COMMANDS metadata, not hard-coded."""
+    cli = _load_cli()
+
+    async def go():
+        app = cli._make_tui_app(str(tmp_project))
+        async with app.run_test(size=(120, 40)):
+            ids = {btn.id for btn in app.query("#sidebar Button")}
+            expected = {"init", "open-wizard", "validate", "build", "package", "install",
+                        "changelog", "tune-ids", "uninstall", "doctor",
+                        "pipeline-next", "pipeline-unlock", "pipeline-reset"}
+            for e in expected:
+                assert e in ids, f"missing sidebar button #{e}"
+            assert "generate" not in ids, "generate UI was removed; Create tab is the unified entry"
+            assert "mod_type" not in {w.id for w in app.query("#sidebar Select")}
 
     _run(go())
 
 
 def test_tui_selects_stay_collapsed(tmp_project):
     """Regression: textual 8's Horizontal base leaks height:1fr into SelectCurrent,
-    stretching Selects to fill the tab and hiding the form. Both Selects must stay
-    collapsed (3 rows) and the overlay must open."""
+    stretching Selects to fill the tab and hiding the form. The Create tab Select
+    must stay collapsed (3 rows) and the overlay must open."""
     cli = _load_cli()
 
     async def go():
@@ -276,7 +281,6 @@ def test_tui_selects_stay_collapsed(tmp_project):
             app.query_one(TabbedContent).active = "tab-create"
             assert await _wait_for(lambda: app.query_one("#w_type", Select).region.height > 0)
             assert app.query_one("#w_type", Select).region.height == 3
-            assert app.query_one("#mod_type", Select).region.height == 3
             select = app.query_one("#w_type", Select)
             select.expanded = True
             assert await _wait_for(lambda: select.query_one(SelectOverlay).display is True)
@@ -381,28 +385,6 @@ def test_tui_create_tab_button_opens_tab(tmp_project):
             assert app.query_one(TabbedContent).active == "tab-create"
 
     _run(go())
-
-
-def test_tui_generate_creates_artifact(tmp_project, tmp_path):
-    cli = _load_cli()
-    import os
-
-    old_cwd = os.getcwd()
-    os.chdir(tmp_path)  # cwd is NOT the TUI project; generate must still target it
-    try:
-        async def go():
-            app = cli._make_tui_app(str(tmp_project))
-            async with app.run_test(size=(120, 40)) as pilot:
-                from textual.widgets import Button, Input
-                app.query_one("#gen_name", Input).value = "TuiTrait"
-                app.query_one("#generate", Button).press()
-                await pilot.pause()
-                await app.workers.wait_for_complete()
-
-        _run(go())
-    finally:
-        os.chdir(old_cwd)
-    assert (tmp_project / "src" / "xml_snippets" / "TuiTrait_trait" / "TuiTrait_trait.xml").exists()
 
 
 def test_tui_non_project_path_shows_hint(tmp_path):

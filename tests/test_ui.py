@@ -203,13 +203,13 @@ def test_menu_runs_command_and_exits():
     cli = _load_cli()
     old_stdin, old_stdout = _capture_console()
     try:
-        choices = iter(["version", "Exit"])
+        choices = iter([cli.MENU_DOCTOR, cli.MENU_EXIT])
         rc = cli.menu_shell(select=lambda _msg, _opts: next(choices, "Exit"))
         output = sys.stdout.getvalue()
     finally:
         sys.stdin, sys.stdout = old_stdin, old_stdout
     assert rc == 0
-    assert "s4chemist_cli v" in output
+    assert "sims docs" in output.lower()
 
 
 def test_menu_cancel_is_safe():
@@ -236,6 +236,38 @@ def test_menu_flow_validate_strict_flag():
     cli._menu_text = lambda msg, default="": default
     cli._menu_confirm = lambda msg, default=False: True
     assert cli._menu_flow("validate") == ["validate", ".", "--strict"]
+
+
+def test_menu_session_reuses_project_path(tmp_project):
+    cli = _load_cli()
+    session = cli.MenuSession()
+    defaults = []
+
+    def fake_text(msg, default=""):
+        defaults.append((msg, default))
+        if msg == "Project path" and default == ".":
+            return str(tmp_project)
+        return default
+
+    cli._menu_text = fake_text
+    cli._menu_confirm = lambda msg, default=False: False
+
+    assert cli._menu_flow("validate", session) == ["validate", str(tmp_project)]
+    assert cli._menu_flow("build", session) == ["build", str(tmp_project)]
+    assert defaults[1] == ("Project path", str(tmp_project))
+
+
+def test_guided_create_uses_new_for_existing_project(tmp_project):
+    cli = _load_cli()
+    session = cli.MenuSession()
+    answers = {"Project path": str(tmp_project), "Artifact/module name": "MenuTrait"}
+    cli._menu_text = lambda msg, default="": answers.get(msg, default)
+    action = cli._guided_action(
+        cli.MENU_CREATE,
+        session,
+        select=lambda msg, choices: "trait" if msg == "Mod type" else choices[0],
+    )
+    assert action == cli.MenuAction(["new", str(tmp_project), "trait", "MenuTrait"])
 
 
 def test_menu_flow_generate_params():

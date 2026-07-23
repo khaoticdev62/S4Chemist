@@ -1880,7 +1880,7 @@ def _commands_table() -> Table:
     table.add_column("DESCRIPTION")
     table.add_column("STATUS")
     for entry in COMMANDS.values():
-        if not entry.description:
+        if entry.hidden or not entry.description:
             continue  # hidden command: dispatchable but not listed
         status_tag = ""
         if entry.status:
@@ -1962,7 +1962,11 @@ def print_subcommand_help(command: str) -> None:
 
 @dataclass
 class Command:
-    """Registry entry: dispatch handler plus data-driven help metadata."""
+    """Registry entry: dispatch handler plus data-driven help metadata.
+
+    Navigation metadata (category, takes_path, menu_flow, tui_action) lets the
+    menu shell, REPL, help, and TUI derive their surfaces from one registry.
+    """
 
     name: str
     handler: Callable[[list[str]], int]
@@ -1970,6 +1974,11 @@ class Command:
     usage: str = ""        # usage column in the main COMMANDS table
     description: str = ""  # description column (empty = hidden from main help)
     status: str = ""       # "verified" | "local" | "" -> STATUS column tag
+    category: str = "meta"  # create | inspect | ship | repair | meta
+    takes_path: bool = False
+    menu_flow: bool = False  # offer guided prompt flow in the menu shell
+    tui_action: bool = False  # surface as a TUI sidebar button
+    hidden: bool = False     # hide from help, menu, palette
 
 
 def _cmd_init(argv: list[str]) -> int:
@@ -2462,6 +2471,14 @@ def _cmd_wizard(argv: list[str]) -> int:
 
 # ── Textual TUI (full dashboard; launched via `tui`) ───────────────────────
 
+_TUI_CATEGORY_ORDER = ["create", "inspect", "ship", "repair"]
+_TUI_CATEGORY_LABELS = {
+    "create": "CREATE",
+    "inspect": "INSPECT",
+    "ship": "SHIP",
+    "repair": "REPAIR",
+}
+
 _TUI_CSS = """
 #sidebar { width: 20%; min-width: 22; max-width: 38; padding: 1; border-right: tall $boost; }
 #sidebar Label { margin-top: 1; color: $text-muted; text-style: bold; }
@@ -2507,31 +2524,29 @@ def _make_tui_app(project: str = "."):
     )
 
     class S4Commands(Provider):
-        """Command palette entries (Ctrl+P)."""
+        """Command palette entries (Ctrl+P). Derived from COMMANDS so new
+        commands automatically appear without touching the TUI code."""
 
         def _entries(self) -> list[tuple[str, list[str] | str]]:
             app = self.app
             proj = app._proj()  # type: ignore[attr-defined]
-            return [
-                ("Validate project", ["validate", proj]),
-                ("Build project zip", ["build", proj]),
-                ("Package release zip", ["package", proj]),
-                ("Add changelog entry", ["changelog", proj]),
-                ("Tune IDs", ["tune-ids", proj]),
-                ("Init project here", ["init", proj]),
-                ("Install to Mods folder", ["install", proj]),
-                ("Uninstall from Mods folder", ["uninstall", proj]),
-                ("Pipeline: next actions", ["pipeline-next", proj]),
-                ("Pipeline: unlock phase", ["pipeline-unlock", proj]),
-                ("Pipeline: reset", ["pipeline-reset", proj]),
+            entries: list[tuple[str, list[str] | str]] = []
+            for cmd in COMMANDS.values():
+                if cmd.hidden or not cmd.description:
+                    continue
+                label = f"{cmd.name.replace('-', ' ').title()}: {cmd.description}"
+                if cmd.takes_path:
+                    entries.append((label, [cmd.name, proj]))
+                else:
+                    entries.append((label, [cmd.name]))
+            entries.extend([
                 ("Pipeline: tune current phase", "pipeline-tune"),
-                ("Doctor (environment checks)", ["doctor"]),
-                ("Game Python check", ["game-python"]),
-                ("Version", ["version"]),
-                ("Help", ["help"]),
                 ("Refresh pipeline table", "refresh"),
-                ("Open guided creation tab", "wizard"),
-            ]
+                ("Open guided creation tab", "open-create-tab"),
+                ("Navigate to next action", "next-action"),
+                ("Go to current phase", "go-phase"),
+            ])
+            return entries
 
         async def search(self, query: str):
             matcher = self.matcher(query)
@@ -2552,8 +2567,15 @@ def _make_tui_app(project: str = "."):
                 proj = Path(app._proj())  # type: ignore[attr-defined]
                 state = load_pipeline_state(proj)
                 app.run_command(["pipeline", "tune", current_phase(state), str(proj)])  # type: ignore[attr-defined]
-            elif action == "wizard":
+            elif action == "open-create-tab":
                 app.query_one(TabbedContent).active = "tab-create"  # type: ignore[attr-defined]
+            elif action == "next-action":
+                proj = Path(app._proj())  # type: ignore[attr-defined]
+                state = load_pipeline_state(proj)
+                actions = next_actions(state)
+                app._append_log(["palette"], "Next action: " + (actions[0] if actions else "No action"), 0)  # type: ignore[attr-defined]
+            elif action == "go-phase":
+                app.query_one(TabbedContent).active = "tab-pipeline"  # type: ignore[attr-defined]
             else:
                 app.run_command(action)  # type: ignore[attr-defined]
 
@@ -2587,26 +2609,27 @@ def _make_tui_app(project: str = "."):
                 with VerticalScroll(id="sidebar"):
                     yield Label("◆ PROJECT")
                     yield Input(value=project, placeholder="project path", id="project")
-                    yield Button("Init Project", id="init")
-                    yield Label("◆ COMMANDS")
-                    yield Button("Validate", id="validate", variant="primary")
-                    yield Button("Build", id="build", variant="primary")
-                    yield Button("Package", id="package", variant="primary")
-                    yield Button("Changelog", id="changelog")
-                    yield Button("Tune IDs", id="tune-ids")
-                    yield Input(placeholder="Mods dir (optional)", id="mods_dir")
-                    yield Button("Install", id="install")
-                    yield Button("Uninstall", id="uninstall", variant="error")
-                    yield Button("Doctor", id="doctor")
+                    if COMMANDS.get("init", Command("", lambda _: 0)).tui_action:
+                        yield Button("Init Project", id="init")
+                    yield Label("◆ WORKFLOW")
                     yield Button("Create", id="open-wizard", variant="warning")
-                    yield Label("◆ PIPELINE")
-                    yield Button("Next Actions", id="pipeline-next")
-                    yield Button("Unlock Phase", id="pipeline-unlock")
-                    yield Button("Reset", id="pipeline-reset", variant="error")
-                    yield Label("◆ GENERATE")
-                    yield Select([(k, k) for k in MOD_FACTORIES], value="trait", id="mod_type")
-                    yield Input(placeholder="module/object name", id="gen_name")
-                    yield Button("Generate", id="generate", variant="success")
+                    for cat in _TUI_CATEGORY_ORDER:
+                        cmds = [c for c in COMMANDS.values() if c.category == cat and c.tui_action]
+                        if not cmds:
+                            continue
+                        yield Label(f"◆ {_TUI_CATEGORY_LABELS.get(cat, cat.upper())}")
+                        for cmd in cmds:
+                            if cmd.name == "init":
+                                continue  # already shown under PROJECT
+                            label = cmd.description.split(".")[0]
+                            if cmd.name in ("validate", "build", "package"):
+                                yield Button(label, id=cmd.name, variant="primary")
+                            elif cmd.name in ("uninstall", "pipeline-reset"):
+                                yield Button(label, id=cmd.name, variant="error")
+                            else:
+                                yield Button(label, id=cmd.name)
+                    yield Label("◆ MODS")
+                    yield Input(placeholder="Mods dir (optional)", id="mods_dir")
                 with Vertical():
                     yield Static("", id="status-bar")
                     with TabbedContent():
@@ -2875,15 +2898,6 @@ def _make_tui_app(project: str = "."):
         def _open_wizard(self) -> None:
             self.query_one(TabbedContent).active = "tab-create"
 
-        @on(Button.Pressed, "#generate")
-        def _generate(self) -> None:
-            name = self.query_one("#gen_name", Input).value.strip()
-            if not name:
-                self._append_log(["generate"], "name is required", 2)
-                return
-            mod_type = self.query_one("#mod_type", Select).value
-            self.run_command(["generate", str(mod_type), name], cwd=self._proj())
-
         @on(Input.Submitted, "#project")
         def _project_submitted(self) -> None:
             self.refresh_pipeline()
@@ -2908,6 +2922,9 @@ COMMANDS: dict[str, Command] = {
             usage="init <name>",
             description="Initialize a new mod project.",
             status="verified",
+            category="create",
+            menu_flow=True,
+            tui_action=True,
         ),
         Command(
             "new",
@@ -2920,6 +2937,8 @@ COMMANDS: dict[str, Command] = {
             usage="new <where> <kind> <name>",
             description="Create a mod artifact of any supported kind.",
             status="verified",
+            category="create",
+            menu_flow=True,
         ),
         Command(
             "validate",
@@ -2928,6 +2947,10 @@ COMMANDS: dict[str, Command] = {
             usage="validate [path]",
             description="Validate XML/packaging hygiene.",
             status="verified",
+            category="inspect",
+            takes_path=True,
+            menu_flow=True,
+            tui_action=True,
         ),
         Command(
             "build",
@@ -2936,6 +2959,10 @@ COMMANDS: dict[str, Command] = {
             usage="build [path]",
             description="Package current artifacts into a release zip.",
             status="verified",
+            category="ship",
+            takes_path=True,
+            menu_flow=True,
+            tui_action=True,
         ),
         Command(
             "package",
@@ -2944,6 +2971,10 @@ COMMANDS: dict[str, Command] = {
             usage="package [path]",
             description="Create release zip excluding dist/tmp/.git.",
             status="verified",
+            category="ship",
+            takes_path=True,
+            menu_flow=True,
+            tui_action=True,
         ),
         Command(
             "install",
@@ -2956,6 +2987,10 @@ COMMANDS: dict[str, Command] = {
             usage="install [path]",
             description="Install project into your Mods folder.",
             status="local",
+            category="ship",
+            takes_path=True,
+            menu_flow=True,
+            tui_action=True,
         ),
         Command(
             "doctor",
@@ -2963,18 +2998,22 @@ COMMANDS: dict[str, Command] = {
             usage="doctor",
             description="Run environment and path checks.",
             status="verified",
+            category="inspect",
+            tui_action=True,
         ),
         Command(
             "version",
             _cmd_version,
             usage="version",
             description="Print CLI version.",
+            category="meta",
         ),
         Command(
             "help",
             _cmd_help,
             usage="help <cmd>",
             description="Show help for a subcommand.",
+            category="meta",
         ),
         Command(
             "generate",
@@ -2982,6 +3021,8 @@ COMMANDS: dict[str, Command] = {
             args=["  mod_type   Supported mod type", "  name       Module or object name", "  --param k=v   Scalar tuning params, repeatable."],
             usage="generate <type> <name>",
             description="Generate a Sims 4 mod scaffold.",
+            category="create",
+            menu_flow=True,
         ),
         Command(
             "wizard",
@@ -2993,12 +3034,20 @@ COMMANDS: dict[str, Command] = {
             ],
             usage="wizard <type> [name]",
             description="Guided mod creation with brain advice.",
+            category="create",
+            menu_flow=True,
+            # tui_action=False: the TUI has a synthetic "Create" button that opens
+            # the Create tab, which itself runs wizard semantics.
         ),
         Command(
             "changelog",
             _cmd_changelog,
             usage="changelog [path]",
             description="Add/update CHANGELOG.md.",
+            category="ship",
+            takes_path=True,
+            menu_flow=True,
+            tui_action=True,
         ),
         Command(
             "tui",
@@ -3006,6 +3055,8 @@ COMMANDS: dict[str, Command] = {
             args=["  path       Project path to load in the dashboard, default '.'."],
             usage="tui [path]",
             description="Open the full dashboard UI (Textual).",
+            category="meta",
+            takes_path=True,
         ),
         Command(
             "tune-ids",
@@ -3014,6 +3065,10 @@ COMMANDS: dict[str, Command] = {
             usage="tune-ids [path]",
             description="Rewrite placeholder tuning ids to stable generated ids.",
             status="verified",
+            category="repair",
+            takes_path=True,
+            menu_flow=True,
+            tui_action=True,
         ),
         Command(
             "pipeline",
@@ -3022,24 +3077,35 @@ COMMANDS: dict[str, Command] = {
             usage="pipeline [path]",
             description="Show phase-by-phase build pipeline status.",
             status="verified",
+            category="inspect",
+            takes_path=True,
         ),
         Command(
             "pipeline-next",
             _cmd_pipeline_next,
             usage="pipeline-next [path]",
             description="Show next actions for the current phase.",
+            category="inspect",
+            takes_path=True,
+            tui_action=True,
         ),
         Command(
             "pipeline-unlock",
             _cmd_pipeline_unlock,
             usage="pipeline-unlock [path]",
             description="Mark current phase done and advance.",
+            category="repair",
+            takes_path=True,
+            tui_action=True,
         ),
         Command(
             "pipeline-reset",
             _cmd_pipeline_reset,
             usage="pipeline-reset [path]",
             description="Reset the pipeline back to concept.",
+            category="repair",
+            takes_path=True,
+            tui_action=True,
         ),
         Command(
             "config",
@@ -3048,6 +3114,9 @@ COMMANDS: dict[str, Command] = {
             usage="config <path> key=value...",
             description="Set values in s4modconfig.yaml.",
             status="verified",
+            category="repair",
+            takes_path=True,
+            menu_flow=True,
         ),
         Command(
             "uninstall",
@@ -3056,6 +3125,10 @@ COMMANDS: dict[str, Command] = {
             usage="uninstall [path]",
             description="Remove an installed copy from the Mods folder.",
             status="local",
+            category="repair",
+            takes_path=True,
+            menu_flow=True,
+            tui_action=True,
         ),
         Command(
             "game-python",
@@ -3063,6 +3136,7 @@ COMMANDS: dict[str, Command] = {
             usage="game-python",
             description="Locate the game's bundled Python files.",
             status="local",
+            category="meta",
         ),
     ]
 }
@@ -3093,6 +3167,22 @@ def _dispatch_shell_line(line: str) -> bool:
     return True
 
 
+def _shell_recommendations(cwd: Path | None = None) -> list[str]:
+    path = cwd or Path.cwd()
+    if _is_project_path(path):
+        state = load_pipeline_state(path)
+        actions = next_actions(state)
+        first = actions[0] if actions else "Run validate --strict ."
+        return [f"Next: {first}", "Try: validate --strict ."]
+    return ["Next: init <NewModName>", "Try: tui ."]
+
+
+def _shell_completion_words() -> list[str]:
+    words = [e.name for e in COMMANDS.values() if not e.hidden and e.description]
+    words.extend(["validate --strict", "build --release", "tune-ids", "pipeline-next"])
+    return words
+
+
 def interactive_shell(reader: Callable[[], str | None] | None = None) -> int:
     """REPL around the COMMANDS dispatch with persistent history + completion.
 
@@ -3100,6 +3190,7 @@ def interactive_shell(reader: Callable[[], str | None] | None = None) -> int:
     used (history in ~/.s4chemist_history, command-name completion).
     """
     print_help(is_subcommand=False, command="")
+    _console.print(_status_panel("next actions", _bullets(_esc(item) for item in _shell_recommendations()), command="interactive"))
     if reader is None:
         from prompt_toolkit import PromptSession
         from prompt_toolkit.completion import WordCompleter
@@ -3107,9 +3198,7 @@ def interactive_shell(reader: Callable[[], str | None] | None = None) -> int:
 
         session: PromptSession = PromptSession(
             history=FileHistory(str(_SHELL_HISTORY)),
-            completer=WordCompleter(
-                [e.name for e in COMMANDS.values() if e.description], sentence=True
-            ),
+            completer=WordCompleter(_shell_completion_words(), sentence=True),
         )
         prompt_text = f"{_glyph()} s4chemist_cli "
 
@@ -3167,13 +3256,55 @@ def _menu_confirm(message: str, default: bool = False) -> bool:
     return bool(questionary.confirm(message, default=default, style=_qstyle()).ask())
 
 
-def _menu_flow(command: str) -> list[str] | None:
+@dataclass
+class MenuSession:
+    """State shared across one guided/menu launch."""
+
+    project_path: str = ""
+
+
+@dataclass
+class MenuAction:
+    """A dispatchable menu action, optionally scoped to a working directory."""
+
+    argv: list[str]
+    cwd: str | None = None
+
+
+def _is_project_path(path: str | Path) -> bool:
+    candidate = Path(path)
+    return all((candidate / marker).exists() for marker in PROJECT_FILES)
+
+
+def _initial_project_default() -> str:
+    return "." if _is_project_path(Path.cwd()) else "."
+
+
+def _menu_project_default(session: MenuSession | None) -> str:
+    return session.project_path if session and session.project_path else _initial_project_default()
+
+
+def _remember_project(session: MenuSession | None, path: str | Path) -> None:
+    if session is not None and str(path).strip():
+        session.project_path = str(path).strip()
+
+
+def _menu_project_text(message: str, session: MenuSession | None) -> str | None:
+    path = _menu_text(message, _menu_project_default(session))
+    if path is not None:
+        _remember_project(session, path)
+    return path
+
+
+def _menu_flow(command: str, session: MenuSession | None = None) -> list[str] | None:
     """Collect argv for `command` via menu prompts; None = cancelled (Esc/Ctrl+C)."""
     if command == "init":
         name = _menu_text("Project directory / mod name")
+        if name:
+            _remember_project(session, name)
         return ["init", name] if name else None
     if command == "new":
-        where = _menu_text("Existing project path", ".")
+        where = _menu_project_text("Existing project path", session)
         if where is None:
             return None
         kind = _menu_select("Kind", list(MOD_FACTORIES))
@@ -3184,7 +3315,7 @@ def _menu_flow(command: str) -> list[str] | None:
             return None
         return ["new", where, kind, name]
     if command == "validate":
-        path = _menu_text("Project path", ".")
+        path = _menu_project_text("Project path", session)
         if path is None:
             return None
         argv = ["validate", path]
@@ -3192,7 +3323,7 @@ def _menu_flow(command: str) -> list[str] | None:
             argv.append("--strict")
         return argv
     if command == "build":
-        path = _menu_text("Project path", ".")
+        path = _menu_project_text("Project path", session)
         if path is None:
             return None
         argv = ["build", path]
@@ -3200,7 +3331,7 @@ def _menu_flow(command: str) -> list[str] | None:
             argv.append("--release")
         return argv
     if command == "package":
-        path = _menu_text("Project path", ".")
+        path = _menu_project_text("Project path", session)
         if path is None:
             return None
         out = _menu_text("Output dir (blank = project dist)", "")
@@ -3211,7 +3342,7 @@ def _menu_flow(command: str) -> list[str] | None:
             argv += ["--out-dir", out]
         return argv
     if command == "install":
-        path = _menu_text("Project path", ".")
+        path = _menu_project_text("Project path", session)
         if path is None:
             return None
         to = _menu_text("Mods dir (blank = auto-detect / S4_MODS_DIR)", "")
@@ -3236,10 +3367,10 @@ def _menu_flow(command: str) -> list[str] | None:
             argv += ["--param", pair]
         return argv
     if command == "changelog":
-        path = _menu_text("Project path", ".")
+        path = _menu_project_text("Project path", session)
         return ["changelog", path] if path is not None else None
     if command in ("pipeline", "pipeline-next", "pipeline-unlock", "pipeline-reset", "tune-ids"):
-        path = _menu_text("Project path", ".")
+        path = _menu_project_text("Project path", session)
         if path is None:
             return None
         argv = [command, path]
@@ -3247,7 +3378,7 @@ def _menu_flow(command: str) -> list[str] | None:
             argv.append("--flavor")
         return argv
     if command == "config":
-        path = _menu_text("Project path", ".")
+        path = _menu_project_text("Project path", session)
         if path is None:
             return None
         kv = _menu_text("Config pairs k=v, comma-separated", "")
@@ -3255,7 +3386,7 @@ def _menu_flow(command: str) -> list[str] | None:
             return None
         return ["config", path] + [p.strip() for p in kv.split(",") if p.strip()]
     if command == "uninstall":
-        path = _menu_text("Project path", ".")
+        path = _menu_project_text("Project path", session)
         if path is None:
             return None
         to = _menu_text("Mods dir (blank = auto-detect / S4_MODS_DIR)", "")
@@ -3266,19 +3397,142 @@ def _menu_flow(command: str) -> list[str] | None:
             argv += ["--to-dir", to]
         return argv
     if command == "help":
-        target = _menu_select("Help for command", [e.name for e in COMMANDS.values() if e.description])
+        target = _menu_select("Help for command", [e.name for e in COMMANDS.values() if not e.hidden and e.description])
         return ["help", target] if target else None
     return [command]  # doctor, version
 
 
 MENU_EXIT = "Exit"
 MENU_SHELL = "Type a command..."
+MENU_CREATE = "Create / scaffold mod"
+MENU_VALIDATE = "Validate / test"
+MENU_SHIP = "Build / package / install"
+MENU_PIPELINE = "Pipeline / tune"
+MENU_DOCTOR = "Environment / doctor"
+MENU_TUI = "TUI / dashboard"
+
+_GUIDED_CHOICES = [
+    MENU_CREATE,
+    MENU_VALIDATE,
+    MENU_SHIP,
+    MENU_PIPELINE,
+    MENU_DOCTOR,
+    MENU_TUI,
+    MENU_SHELL,
+    MENU_EXIT,
+]
 
 
-def menu_shell(select: Callable[[str, list[str]], str | None] | None = None) -> int:
+def _guided_splash(session: MenuSession) -> Panel:
+    table = Table(box=_inner_table_box(), show_edge=False, header_style="head", pad_edge=False)
+    table.add_column("TASK")
+    table.add_column("WHAT IT RUNS")
+    table.add_row("Create", "init or new")
+    table.add_row("Validate", "validate --strict optional")
+    table.add_row("Ship", "build, package, install, changelog")
+    table.add_row("Pipeline", "pipeline status, next, unlock, reset, tune-ids")
+    body = Group(
+        Text.from_markup(_banner_line()),
+        Text.from_markup(f"[muted]Project default:[/] [head]{_esc(_menu_project_default(session))}[/]"),
+        table,
+        Text.from_markup("[muted]Type a command... opens the REPL. Use 'tui' for the dashboard.[/]"),
+    )
+    return Panel(body, box=_box_style(), border_style="accent", expand=False)
+
+
+def _guided_create(
+    session: MenuSession,
+    select: Callable[[str, list[str]], str | None],
+) -> MenuAction | None:
+    path = _menu_project_text("Project path", session)
+    if path is None:
+        return None
+    if not _is_project_path(path):
+        if _menu_confirm("Project not initialized. Initialize it now?", default=True):
+            return MenuAction(["init", path])
+        return None
+    kind = select("Mod type", list(MOD_FACTORIES))
+    if not kind:
+        return None
+    name = _menu_text("Artifact/module name")
+    if not name:
+        return None
+    return MenuAction(["new", path, kind, name])
+
+
+def _guided_ship(
+    session: MenuSession,
+    select: Callable[[str, list[str]], str | None],
+) -> MenuAction | None:
+    action = select("Ship action", ["Build zip", "Package release", "Install to Mods", "Changelog"])
+    mapping = {
+        "Build zip": "build",
+        "Package release": "package",
+        "Install to Mods": "install",
+        "Changelog": "changelog",
+    }
+    command = mapping.get(action or "")
+    if not command:
+        return None
+    argv = _menu_flow(command, session)
+    return MenuAction(argv) if argv else None
+
+
+def _guided_pipeline(
+    session: MenuSession,
+    select: Callable[[str, list[str]], str | None],
+) -> MenuAction | None:
+    action = select("Pipeline action", ["Status", "Next actions", "Unlock current phase", "Reset", "Tune IDs"])
+    mapping = {
+        "Status": "pipeline",
+        "Next actions": "pipeline-next",
+        "Unlock current phase": "pipeline-unlock",
+        "Reset": "pipeline-reset",
+        "Tune IDs": "tune-ids",
+    }
+    command = mapping.get(action or "")
+    if not command:
+        return None
+    argv = _menu_flow(command, session)
+    return MenuAction(argv) if argv else None
+
+
+def _guided_action(
+    choice: str,
+    session: MenuSession,
+    select: Callable[[str, list[str]], str | None],
+) -> MenuAction | None:
+    if choice == MENU_CREATE:
+        return _guided_create(session, select)
+    if choice == MENU_VALIDATE:
+        argv = _menu_flow("validate", session)
+        return MenuAction(argv) if argv else None
+    if choice == MENU_SHIP:
+        return _guided_ship(session, select)
+    if choice == MENU_PIPELINE:
+        return _guided_pipeline(session, select)
+    if choice == MENU_DOCTOR:
+        return MenuAction(["doctor"])
+    if choice == MENU_TUI:
+        path = _menu_project_text("Project path", session)
+        return MenuAction(["tui", path]) if path is not None else None
+    return None
+
+
+def _run_menu_action(action: MenuAction) -> None:
+    old_cwd = os.getcwd()
+    try:
+        if action.cwd:
+            os.chdir(action.cwd)
+        main(action.argv)
+    finally:
+        os.chdir(old_cwd)
+
+
+def _legacy_menu_shell(select: Callable[[str, list[str]], str | None] | None = None) -> int:
     """Arrow-key main menu shown on bare TTY launch. `select` injectable for tests."""
     select = select or _menu_select
-    visible = [e.name for e in COMMANDS.values() if e.description]
+    visible = [e.name for e in COMMANDS.values() if not e.hidden and e.description]
     splash = Panel(
         Text.from_markup(
             _banner_line()
@@ -3301,6 +3555,30 @@ def menu_shell(select: Callable[[str, list[str]], str | None] | None = None) -> 
             continue
         try:
             main(argv)
+        except SystemExit as exc:
+            if exc.code:
+                _console.print(f"[fail]{_esc(exc.code)}[/]")
+        except KeyboardInterrupt:
+            _console.print("[local]Interrupted[/]")
+
+
+def menu_shell(select: Callable[[str, list[str]], str | None] | None = None) -> int:
+    """Task-first menu shown on bare TTY launch. `select` injectable for tests."""
+    select = select or _menu_select
+    session = MenuSession()
+    _console.print(_guided_splash(session))
+    while True:
+        choice = select("S4Chemist - choose a task", _GUIDED_CHOICES)
+        if choice in (None, MENU_EXIT):
+            return 0
+        if choice == MENU_SHELL:
+            interactive_shell()
+            continue
+        action = _guided_action(choice, session, select)
+        if action is None:
+            continue
+        try:
+            _run_menu_action(action)
         except SystemExit as exc:
             if exc.code:
                 _console.print(f"[fail]{_esc(exc.code)}[/]")
