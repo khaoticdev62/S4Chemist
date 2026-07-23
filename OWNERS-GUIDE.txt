@@ -1,7 +1,7 @@
 SIM4 MOD CLI OWNER GUIDE
 Project: current checkout containing `s4chemist_cli.py`
 Core file: `s4chemist_cli.py`
-Version: 0.10.2 (see __version__ in s4chemist_cli.py)
+Version: 0.11.0 (see __version__ in s4chemist_cli.py)
 Docs: `docs/sims4-mod-types.md`
 
 WHAT THIS IS
@@ -33,6 +33,9 @@ COMMAND REFERENCE
 - python "$SK" package [path] [--out-dir <dir>]
 - python "$SK" changelog [path]
 - python "$SK" install [path] [--to-dir <dir>]   (or set S4_MODS_DIR)
+- python "$SK" uninstall [path] [--to-dir <dir>]
+- python "$SK" config <path> key=value [...]
+- python "$SK" tune-ids <path> [--flavor]
 - python "$SK" tui [path]   (full dashboard)
 - python "$SK" doctor
 - python "$SK" version

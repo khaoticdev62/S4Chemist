@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.0 — 2026-07-23
+
+The no-editor workflow trio: every remaining "open a text editor" step is now a command.
+
+### Added
+- `config <path> key=value [...]` — set values in `s4modconfig.yaml` (mod_name, creator,
+  version, ...); appends new keys. Menu flow included.
+- `uninstall [path] [--to-dir <dir>]` — remove an installed copy from the Mods folder;
+  refuses directories that aren't S4Chemist copies. Available in the menu, the TUI sidebar
+  (red button), and the palette.
+- `tune-ids --flavor` — also rewrite placeholder flavor text (`Replace with X flavor text.`
+  → `X flavor text.`) as stopgap copy, so `validate --strict` can go fully green without
+  hand-editing.
+
 ## 0.10.3 — 2026-07-22
 
 ### Added

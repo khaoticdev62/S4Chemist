@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.10.3"
+__version__ = "0.11.0"
 
 PIPELINE_PHASES = [
     "concept",
@@ -1750,20 +1750,7 @@ def build_project(proj: Path) -> Path:
 
 
 def install_to_mods(proj: Path, mods_dir: str | None = None) -> Path:
-    # Priority: explicit --to-dir > S4_MODS_DIR env var > auto-detected Mods folder.
-    env_dir = os.environ.get("S4_MODS_DIR")
-    if mods_dir:
-        target_path = Path(mods_dir)
-    elif env_dir:
-        target_path = Path(env_dir)
-        if not target_path.exists():
-            raise SystemExit(f"S4_MODS_DIR does not exist: {target_path}")
-    else:
-        docs = Path.home() / "Documents"
-        mods_candidate = docs / "Electronic Arts" / "The Sims 4" / "Mods"
-        if not mods_candidate.exists():
-            raise SystemExit(f"Auto-detected Mods folder not found: {mods_candidate}")
-        target_path = mods_candidate
+    target_path = _mods_root(mods_dir)  # --to-dir > S4_MODS_DIR > auto-detect
 
     target = target_path / proj.name
     if target.exists():
@@ -2018,6 +2005,73 @@ def _cmd_install(argv: list[str]) -> int:
     return 0
 
 
+def _mods_root(mods_dir: str | None = None) -> Path:
+    """Resolve the Mods root with the same priority as install: --to-dir > S4_MODS_DIR > auto-detect."""
+    env_dir = os.environ.get("S4_MODS_DIR")
+    if mods_dir:
+        return Path(mods_dir)
+    if env_dir:
+        root = Path(env_dir)
+        if not root.exists():
+            raise SystemExit(f"S4_MODS_DIR does not exist: {root}")
+        return root
+    docs = Path.home() / "Documents"
+    candidate = docs / "Electronic Arts" / "The Sims 4" / "Mods"
+    if not candidate.exists():
+        raise SystemExit(f"Auto-detected Mods folder not found: {candidate}")
+    return candidate
+
+
+def _cmd_uninstall(argv: list[str]) -> int:
+    path = _project_path_from_argv(argv)
+    to_dir = None
+    if "--to-dir" in argv:
+        idx = argv.index("--to-dir")
+        if idx + 1 < len(argv):
+            to_dir = argv[idx + 1]
+    proj = _existing_project(path)
+    target = _mods_root(to_dir) / proj.name
+    if not target.exists():
+        print_help(is_subcommand=True, command="uninstall", error=f"Not installed: {target}")
+        return 2
+    if not (target / "s4modconfig.yaml").exists():
+        print_help(is_subcommand=True, command="uninstall",
+                   error=f"Refusing to remove {target}: no s4modconfig.yaml (not an S4Chemist copy)")
+        return 2
+    shutil.rmtree(target)
+    print(_status_panel("uninstall", _meta_block("ok", "Removed", str(target)), command="uninstall"))
+    return 0
+
+
+def _cmd_config(argv: list[str]) -> int:
+    if len(argv) < 3:
+        print_help(is_subcommand=True, command="config", error="Expected: config <path> key=value [key=value ...]")
+        return 2
+    proj = _existing_project(argv[1])
+    cfg = proj / "s4modconfig.yaml"
+    lines = cfg.read_text(encoding="utf-8").splitlines()
+    changed = []
+    for token in argv[2:]:
+        if "=" not in token:
+            print_help(is_subcommand=True, command="config", error=f"Expected key=value, got: {token}")
+            return 2
+        key, value = (part.strip() for part in token.split("=", 1))
+        replaced = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith(f"{key}:"):
+                lines[i] = f"{key}: {value}"
+                replaced = True
+                break
+        if not replaced:
+            lines.append(f"{key}: {value}")
+        changed.append((key, value))
+    _write(cfg, "\n".join(lines) + "\n")
+    rows = _meta_block("verified", "Config", f"{len(changed)} key{'s' if len(changed) != 1 else ''} updated")
+    rows += _kv_block([(k, _esc(v)) for k, v in changed])
+    print(_status_panel("config", rows, command="config"))
+    return 0
+
+
 def _cmd_doctor(argv: list[str]) -> int:
     return doctor_check()
 
@@ -2157,6 +2211,7 @@ def _cmd_tune_ids(argv: list[str]) -> int:
     if len(argv) < 2:
         print_help(is_subcommand=True, command="tune-ids", error="Expected: tune-ids <path>")
         return 2
+    flavor = "--flavor" in argv
     proj = _existing_project(argv[1])
     touched = []
     xml_files = sorted(proj.rglob("*.xml"))
@@ -2172,6 +2227,10 @@ def _cmd_tune_ids(argv: list[str]) -> int:
         updated = updated.replace("<T n=\"icon_resource\">0x00000000</T>", "<T n=\"icon_resource\">" + _tuning_instance(xml.stem, "_icon") + "</T>")
         updated = updated.replace("<U n=\"club_icon\">0x00000000</U>", "<U n=\"club_icon\">" + _tuning_instance(xml.stem, "_icon") + "</U>")
         updated = updated.replace("<U n=\"holiday_icon\">0x00000000</U>", "<U n=\"holiday_icon\">" + _tuning_instance(xml.stem, "_icon") + "</U>")
+        if flavor:
+            # stopgap copy so --strict passes: "Replace with X flavor text." -> "X flavor text."
+            updated = re.sub(r"Replace with (.+?) flavor text\.",
+                             lambda m: m.group(1) + " flavor text.", updated)
         idx = 0
         def _replace_u(match):
             nonlocal idx
@@ -2372,6 +2431,7 @@ def _make_tui_app(project: str = "."):
                 ("Tune IDs", ["tune-ids", proj]),
                 ("Init project here", ["init", proj]),
                 ("Install to Mods folder", ["install", proj]),
+                ("Uninstall from Mods folder", ["uninstall", proj]),
                 ("Pipeline: next actions", ["pipeline-next", proj]),
                 ("Pipeline: unlock phase", ["pipeline-unlock", proj]),
                 ("Pipeline: reset", ["pipeline-reset", proj]),
@@ -2447,6 +2507,7 @@ def _make_tui_app(project: str = "."):
                     yield Button("Tune IDs", id="tune-ids")
                     yield Input(placeholder="Mods dir (optional)", id="mods_dir")
                     yield Button("Install", id="install")
+                    yield Button("Uninstall", id="uninstall", variant="error")
                     yield Button("Doctor", id="doctor")
                     yield Button("Create", id="open-wizard", variant="warning")
                     yield Label("◆ PIPELINE")
@@ -2701,6 +2762,14 @@ def _make_tui_app(project: str = "."):
                 argv += ["--to-dir", mods_dir]
             self.run_command(argv)
 
+        @on(Button.Pressed, "#uninstall")
+        def _uninstall(self) -> None:
+            argv = ["uninstall", self._proj()]
+            mods_dir = self.query_one("#mods_dir", Input).value.strip()
+            if mods_dir:
+                argv += ["--to-dir", mods_dir]
+            self.run_command(argv)
+
         @on(Button.Pressed, "#pipeline-next")
         def _pipeline_next(self) -> None:
             self.run_command(["pipeline-next", self._proj()])
@@ -2852,7 +2921,7 @@ COMMANDS: dict[str, Command] = {
         Command(
             "tune-ids",
             _cmd_tune_ids,
-            args=["  path       Project path, default '.'.", "  Rewrites 0x00000000 tuning ids to stable generated ids."],
+            args=["  path       Project path, default '.'.", "  --flavor   Also rewrite placeholder flavor text (stopgap copy)."],
             usage="tune-ids [path]",
             description="Rewrite placeholder tuning ids to stable generated ids.",
             status="verified",
@@ -2882,6 +2951,22 @@ COMMANDS: dict[str, Command] = {
             _cmd_pipeline_reset,
             usage="pipeline-reset [path]",
             description="Reset the pipeline back to concept.",
+        ),
+        Command(
+            "config",
+            _cmd_config,
+            args=["  path       Project path", "  key=value  Config keys to set (mod_name, creator, version, ...)."],
+            usage="config <path> key=value...",
+            description="Set values in s4modconfig.yaml.",
+            status="verified",
+        ),
+        Command(
+            "uninstall",
+            _cmd_uninstall,
+            args=["  path       Project path, default '.'.", "  --to-dir   Mods root or custom directory."],
+            usage="uninstall [path]",
+            description="Remove an installed copy from the Mods folder.",
+            status="local",
         ),
         Command(
             "game-python",
@@ -3066,7 +3151,31 @@ def _menu_flow(command: str) -> list[str] | None:
         return ["changelog", path] if path is not None else None
     if command in ("pipeline", "pipeline-next", "pipeline-unlock", "pipeline-reset", "tune-ids"):
         path = _menu_text("Project path", ".")
-        return [command, path] if path is not None else None
+        if path is None:
+            return None
+        argv = [command, path]
+        if command == "tune-ids" and _menu_confirm("Also rewrite placeholder flavor text (--flavor)?"):
+            argv.append("--flavor")
+        return argv
+    if command == "config":
+        path = _menu_text("Project path", ".")
+        if path is None:
+            return None
+        kv = _menu_text("Config pairs k=v, comma-separated", "")
+        if kv is None or not kv.strip():
+            return None
+        return ["config", path] + [p.strip() for p in kv.split(",") if p.strip()]
+    if command == "uninstall":
+        path = _menu_text("Project path", ".")
+        if path is None:
+            return None
+        to = _menu_text("Mods dir (blank = auto-detect / S4_MODS_DIR)", "")
+        if to is None:
+            return None
+        argv = ["uninstall", path]
+        if to:
+            argv += ["--to-dir", to]
+        return argv
     if command == "help":
         target = _menu_select("Help for command", [e.name for e in COMMANDS.values() if e.description])
         return ["help", target] if target else None

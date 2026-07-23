@@ -58,6 +58,8 @@ all scaling to your desktop window.
 | `tune-ids [path]` | Rewrite placeholder tuning ids to stable generated ids |
 | `build` / `package` | Zip the project (release variant excludes owner docs) |
 | `install [path]` | Copy to Mods (`--to-dir` or `S4_MODS_DIR` to override) |
+| `uninstall [path]` | Remove an installed copy from Mods |
+| `config <path> key=value...` | Set values in `s4modconfig.yaml` |
 | `pipeline [-next/-unlock/-reset]` | Phase-by-phase build tracker |
 | `changelog [path]` | Prepend a dated CHANGELOG entry |
 | `tui [path]` | Full Textual dashboard |

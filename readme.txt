@@ -19,6 +19,9 @@ Common commands:
 - python s4chemist_cli.py pipeline tune <phase> [path]
 - python s4chemist_cli.py pipeline unlock/status/next/reset [path]
 - python s4chemist_cli.py install [path] [--to-dir <dir>]   (or set S4_MODS_DIR)
+- python s4chemist_cli.py uninstall [path] [--to-dir <dir>]
+- python s4chemist_cli.py config <path> key=value [...]
+- python s4chemist_cli.py tune-ids <path> [--flavor]
 - python s4chemist_cli.py doctor
 - python s4chemist_cli.py tui [path]   (4-tab dashboard: Pipeline / Create / Files / Log,
   one-click commands in the sidebar, guided creation runs against the dashboard's project
