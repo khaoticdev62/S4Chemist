@@ -1,7 +1,7 @@
 SIM4 MOD CLI OWNER GUIDE
 Project: current checkout containing `s4chemist_cli.py`
 Core file: `s4chemist_cli.py`
-Version: 0.11.0 (see __version__ in s4chemist_cli.py)
+Version: 0.12.0 (see __version__ in s4chemist_cli.py)
 Docs: `docs/sims4-mod-types.md`
 
 WHAT THIS IS

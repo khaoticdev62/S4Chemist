@@ -83,7 +83,8 @@ pyinstaller s4chemist_cli.spec   # build the portable exe
 ```
 
 Single-file CLI (`s4chemist_cli.py`) — architecture notes in [CLAUDE.md](CLAUDE.md) and
-[AGENTS.md](AGENTS.md). Changelog: [CHANGELOG.md](CHANGELOG.md).
+[AGENTS.md](AGENTS.md). Authoring walkthrough: [docs/workflow.md](docs/workflow.md).
+Changelog: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

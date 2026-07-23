@@ -75,6 +75,18 @@ ALL_KINDS = [
 ]
 
 
+def test_tune_ids_is_idempotent(tmp_project, repo_root):
+    from tests.utils import cli_runner
+    cli_runner(["new", str(tmp_project), "trait", "IdemTrait"], repo_root)
+    xml = next(tmp_project.rglob("*_trait.xml"))
+    _, _, rc1 = cli_runner(["tune-ids", str(tmp_project)], repo_root)
+    first = xml.read_text(encoding="utf-8")
+    _, _, rc2 = cli_runner(["tune-ids", str(tmp_project)], repo_root)
+    second = xml.read_text(encoding="utf-8")
+    assert rc1 == 0 and rc2 == 0
+    assert first == second  # second run changes nothing
+
+
 def test_new_supports_all_mod_kinds(tmp_project, repo_root):
     for kind in ALL_KINDS:
         name = f"All{kind.title().replace('_', '')}"

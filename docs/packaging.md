@@ -26,6 +26,12 @@ S4Chemist repo. They always exclude `dist/`, `tmp/`, and `.git*`. `package`
 (and `build --release`, which is equivalent) additionally excludes
 `OWNERS-GUIDE.txt` if a copy happens to be present inside the project.
 
+Deterministic outputs (paths never vary beyond the timestamp):
+- build:   `dist/<mod_name>-<YYYYMMDD-HHMMSS>.zip`
+- package: `dist/<mod_name>-release-<YYYYMMDD-HHMMSS>.zip`
+- package: `tmp/release_manifest.txt` (archive name, size, full contents listing)
+- package: `dist/<mod_name>-release-notes-<YYYYMMDD-HHMMSS>.txt` (latest CHANGELOG section)
+
 INSTALL FOR USERS
 1. Python 3.10 or later
 2. Extract release zip

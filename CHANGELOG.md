@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.12.0 — 2026-07-23
+
+PLAN_KIMI execution: validation completeness, content fidelity, release hardening.
+
+### Added
+- Strict validation now also checks: `s4modconfig.yaml` schema (required fields, `x.y.z`
+  version format), ts4script `manifest.json` (presence, valid JSON, `name`/`entry`),
+  localization files (`key=value` lines), and uncompiled `.package.template` stubs
+- `package` writes `tmp/release_manifest.txt` (full archive listing + size) and
+  `dist/<mod>-release-notes-<stamp>.txt` (latest CHANGELOG.md section)
+- `docs/workflow.md`: the complete authoring walkthrough (golden path, per-artifact
+  post-generation workflow, tune-ids artifacts)
+- ts4script scaffold: richer `manifest.json` (author/description/game_versions) and a README
+  with runtime + install guidance; package scaffold README now has scoped packaging steps
+  with tdesc + signing workflow
+
+### Tests
+- tune-ids idempotency, strict config schema/manifest/localization/package-template checks,
+  release manifest + notes — 88 total, all green
+
 ## 0.11.0 — 2026-07-23
 
 The no-editor workflow trio: every remaining "open a text editor" step is now a command.

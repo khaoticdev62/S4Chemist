@@ -119,6 +119,56 @@ def test_wizard_param_overrides_prompt(tmp_project):
 
 # --- Phase 5: packaging hardening ----------------------------------------
 
+def test_validate_strict_flags_config_schema(tmp_project):
+    cfg = tmp_project / "s4modconfig.yaml"
+    cfg.write_text("mod_name: X\nversion: notaversion\n", encoding="utf-8")
+    stdout, _, rc = run_cli(["validate", str(tmp_project), "--strict"], REPO_ROOT)
+    assert rc >= 1
+    assert "missing required field 'creator'" in stdout
+    assert "not x.y.z format" in stdout
+
+
+def test_validate_strict_flags_broken_manifest(tmp_project, repo_root):
+    from tests.utils import cli_runner
+    cli_runner(["new", str(tmp_project), "ts4script", "BrokenScript"], repo_root)
+    manifest = tmp_project / "src" / "ts4script" / "BrokenScript" / "manifest.json"
+    manifest.write_text("{not json", encoding="utf-8")
+    stdout, _, rc = run_cli(["validate", str(tmp_project), "--strict"], REPO_ROOT)
+    assert rc >= 1
+    assert "invalid JSON" in stdout
+
+
+def test_validate_strict_flags_bad_localization(tmp_project):
+    loc = tmp_project / "src" / "localization"
+    loc.mkdir(parents=True)
+    (loc / "stbl_bad.txt").write_text("key=value\nbare line without equals\n", encoding="utf-8")
+    stdout, _, rc = run_cli(["validate", str(tmp_project), "--strict"], REPO_ROOT)
+    assert rc >= 1
+    assert "key=value line" in stdout
+
+
+def test_validate_strict_flags_uncompiled_package_template(tmp_project, repo_root):
+    from tests.utils import cli_runner
+    cli_runner(["new", str(tmp_project), "package", "PkgStub"], repo_root)
+    stdout, _, rc = run_cli(["validate", str(tmp_project), "--strict"], REPO_ROOT)
+    assert rc >= 1
+    assert "package.template" in stdout
+
+
+def test_package_writes_manifest_and_notes(tmp_project, repo_root):
+    from tests.utils import cli_runner
+    cli_runner(["new", str(tmp_project), "trait", "NoteTrait"], repo_root)
+    cli_runner(["changelog", str(tmp_project)], repo_root)
+    _, _, rc = run_cli(["package", str(tmp_project)], REPO_ROOT)
+    assert rc == 0
+    manifest = tmp_project / "tmp" / "release_manifest.txt"
+    assert manifest.exists()
+    content = manifest.read_text(encoding="utf-8")
+    assert "contents:" in content and "s4modconfig.yaml" in content
+    notes = list((tmp_project / "dist").glob("*-release-notes-*.txt"))
+    assert notes and "Initial scaffold" in notes[0].read_text(encoding="utf-8")
+
+
 def test_install_uses_s4_mods_dir(tmp_project, tmp_path):
     mods = tmp_path / "CustomMods"
     mods.mkdir()

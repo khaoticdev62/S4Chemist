@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.11.0"
+__version__ = "0.12.0"
 
 PIPELINE_PHASES = [
     "concept",
@@ -1344,17 +1344,29 @@ def new_ts4script(proj: Path, name: str) -> Path:
     )
     _write(
         d / "manifest.json",
-        '{\n  "name": "' + name + '",\n  "version": "0.1.0",\n  "entry": "main.py"\n}\n',
+        '{\n'
+        '  "name": "' + name + '",\n'
+        '  "version": "0.1.0",\n'
+        '  "entry": "main.py",\n'
+        '  "author": "YourName",\n'
+        '  "description": "' + name + ' script mod",\n'
+        '  "game_versions": ["*"]\n'
+        '}\n',
     )
     _write(
         d / "README.txt",
         f"Script Mod: {name}\n"
         "Entry: main.py\n"
         "\n"
+        "Runtime guidance:\n"
+        "- Compile with the game's bundled Python (see `s4chemist_cli game-python`).\n"
+        "- Place this folder (or a .ts4script zip of it) directly in Mods, max one level deep.\n"
+        "- Enable 'Script Mods Allowed' in Game Options > Other and restart.\n"
+        "- Test the console command in-game (Ctrl+Shift+C, then your.command.here).\n"
+        "\n"
         "Tuning notes:\n"
-        "- Keep scripts deterministic.\n"
-        "- Avoid hard-coded paths.\n"
-        "- Document dependencies here.\n",
+        "- Keep scripts deterministic; avoid hard-coded paths.\n"
+        "- Document dependencies (XML Injector, other script mods) here.\n",
     )
     return d
 
@@ -1370,9 +1382,16 @@ def new_package_mod(proj: Path, name: str) -> Path:
         f"Package Tuning: {name}\n"
         "Purpose: behavioral tuning/custom-content base project.\n"
         "\n"
+        "Packaging steps:\n"
+        "1. Author tuning XML here, then run `s4chemist_cli tune-ids <proj>`.\n"
+        "2. Build a tdesc manifest with Tdesc Builder (one <Resource> per XML/STBL).\n"
+        "3. Import resources into Sims 4 Studio (or s4pe) and save as " + name + ".package.\n"
+        "4. Sign the .package (Sims 4 Studio 'Sign Package' for CC attribution).\n"
+        "5. Drop the signed .package into Mods and run `s4chemist_cli validate --strict`.\n"
+        "\n"
         "Tuning notes:\n"
-        "- Build tdesc manifest before export.\n"
-        "- Write STBL entries for visible strings.\n",
+        "- Write STBL entries for every visible string (see src/localization).\n"
+        "- Keep one <Resource> per tdesc entry; avoid broad overrides.\n",
     )
     return d
 
@@ -1661,6 +1680,42 @@ def _validate_project_issues(proj: Path, strict: bool = False) -> list[str]:
                 issues.append("s4modconfig.yaml: mod_name is still 'ReplaceMe' (set your real mod name)")
             if "YourName" in txt:
                 issues.append("s4modconfig.yaml: creator is still 'YourName' (set your creator name)")
+            fields = {}
+            for line in txt.splitlines():
+                if ":" in line and not line.strip().startswith("-"):
+                    fields[line.split(":", 1)[0].strip()] = line.split(":", 1)[1].strip()
+            for required in ("mod_name", "creator", "version", "mod_type"):
+                if not fields.get(required):
+                    issues.append(f"s4modconfig.yaml: missing required field '{required}' (set it via 's4chemist_cli config <proj> {required}=...')")
+            version = fields.get("version", "")
+            if version and not re.match(r"^\d+\.\d+\.\d+$", version):
+                issues.append(f"s4modconfig.yaml: version '{version}' is not x.y.z format")
+
+        # ts4script modules need a parseable manifest.json
+        for main_py in proj.rglob("src/ts4script/*/main.py"):
+            manifest = main_py.parent / "manifest.json"
+            if not manifest.exists():
+                issues.append(f"{main_py.parent.relative_to(proj)}/manifest.json: missing (script mods need a manifest)")
+                continue
+            try:
+                import json as _json
+                meta = _json.loads(manifest.read_text(encoding="utf-8"))
+                for key in ("name", "entry"):
+                    if key not in meta:
+                        issues.append(f"{manifest.relative_to(proj)}: missing '{key}' field")
+            except ValueError:
+                issues.append(f"{manifest.relative_to(proj)}: invalid JSON")
+
+        # localization maps produced by tune-ids must be key=value lines
+        for stbl in proj.rglob("src/localization/*.txt"):
+            for lineno, line in enumerate(stbl.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+                if line.strip() and "=" not in line:
+                    issues.append(f"{stbl.relative_to(proj)}:{lineno}: not a key=value line ({line.strip()[:40]})")
+
+        # package templates that were never compiled into a real .package
+        templates = list(proj.rglob("src/package/**/*.package.template"))
+        if templates and not list(proj.rglob("src/package/**/*.package")):
+            issues.append("src/package: only .package.template stubs found (compile a real .package in Sims4Studio/s4pe before release)")
 
     xml_files = list(proj.rglob("*.xml"))
     for xml in xml_files:
@@ -1866,7 +1921,41 @@ def package_release(proj: Path, out_dir: Path | None = None) -> Path:
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     base = out_dir or (proj / "dist")
     out = base / f"{_mod_name_from_config(proj)}-release-{stamp}.zip"
-    return _zip_project(proj, out, extra_excludes=("OWNERS-GUIDE.txt",))
+    result = _zip_project(proj, out, extra_excludes=("OWNERS-GUIDE.txt",))
+    _write_release_manifest(proj, result)
+    _write_release_notes(proj, base, stamp)
+    return result
+
+
+def _write_release_manifest(proj: Path, archive: Path) -> Path:
+    """Auditable manifest of a built release: archive name, size, and full contents."""
+    with zipfile.ZipFile(archive) as zf:
+        names = zf.namelist()
+    lines = [
+        f"release: {archive.name}",
+        f"mod: {_mod_name_from_config(proj)}",
+        f"built: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"size: {archive.stat().st_size} bytes",
+        f"files: {len(names)}",
+        "",
+        "contents:",
+    ] + [f"  - {n}" for n in names]
+    manifest = proj / "tmp" / "release_manifest.txt"
+    _write(manifest, "\n".join(lines) + "\n")
+    return manifest
+
+
+def _write_release_notes(proj: Path, out_dir: Path, stamp: str) -> Path | None:
+    """Extract the latest CHANGELOG.md section into dist/<mod>-release-notes-<stamp>.txt."""
+    changelog = proj / "CHANGELOG.md"
+    if not changelog.exists():
+        return None
+    text = changelog.read_text(encoding="utf-8")
+    sections = re.split(r"(?m)^## ", text)
+    latest = sections[1] if len(sections) > 1 else text
+    notes = out_dir / f"{_mod_name_from_config(proj)}-release-notes-{stamp}.txt"
+    _write(notes, "## " + latest.strip() + "\n" if not latest.startswith("#") else latest)
+    return notes
 
 def print_subcommand_help(command: str) -> None:
     print_help(is_subcommand=True, command=command)

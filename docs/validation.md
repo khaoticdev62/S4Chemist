@@ -24,7 +24,11 @@ The package check is skipped when `src/package/` exists and the project has XML 
 | Template mod name | config contains `ReplaceMe` | set a real `mod_name:` |
 | Template creator | config contains `YourName` | set a real `creator:` |
 | Placeholder tuning id | XML contains `0x00000000` | run `s4chemist_cli tune-ids <project>` to assign real ids |
-| Placeholder flavor text | XML contains `Replace with ...` | write real display/description text |
+| Placeholder flavor text | XML contains `Replace with ...` | write real display/description text (or `tune-ids --flavor` for stopgap copy) |
+| Config schema | `s4modconfig.yaml` missing `mod_name`/`creator`/`version`/`mod_type`, or `version` not `x.y.z` | `s4chemist_cli config <proj> key=value` |
+| Script manifest | `src/ts4script/*/main.py` without parseable `manifest.json` (`name`/`entry` required) | add/fix `manifest.json` |
+| Localization | a `src/localization/*.txt` line without `key=value` | fix the STBL map line |
+| Uncompiled package | only `.package.template` stubs, no real `.package` | compile one in Sims4Studio/s4pe before release |
 
 ## Tag matching and duplicate tagging rules
 
