@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.3 — 2026-07-22
+
+### Added
+- `README.md` — proper GitHub front page (brand, install, quickstart, command table,
+  dashboard guide, dev workflow); `pyproject.toml` readme now points at it
+- TUI: Mods-dir input next to Install (maps to `--to-dir`; blank = auto-detect/`S4_MODS_DIR`)
+- TUI command palette: "Pipeline: tune current phase" entry
+
+### Fixed
+- OWNERS-GUIDE.txt version header updated (was stuck at 0.9.6)
+
 ## 0.10.2 — 2026-07-22
 
 Supreme UI polish audit fixes.

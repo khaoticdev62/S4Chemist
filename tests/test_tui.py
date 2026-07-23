@@ -181,6 +181,37 @@ def test_tui_layout_scales_with_desktop_size(tmp_project):
     assert small_w >= 22, "sidebar keeps a usable minimum on small consoles"
 
 
+def test_tui_install_uses_mods_dir_input(tmp_project, tmp_path):
+    cli = _load_cli()
+
+    async def go():
+        mods = tmp_path / "ModsTarget"
+        mods.mkdir()
+        app = cli._make_tui_app(str(tmp_project))
+        async with app.run_test(size=(140, 40)) as pilot:
+            from textual.widgets import Button, Input
+            app.query_one("#mods_dir", Input).value = str(mods)
+            app.query_one("#install", Button).press()
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+        assert (mods / tmp_project.name / "s4modconfig.yaml").exists()
+
+    _run(go())
+
+
+def test_tui_palette_has_pipeline_tune(tmp_project):
+    cli = _load_cli()
+
+    async def go():
+        app = cli._make_tui_app(str(tmp_project))
+        async with app.run_test(size=(120, 40)):
+            provider = next(c(app.screen) for c in type(app).COMMANDS if c.__name__ == "S4Commands")
+            hits = [hit async for hit in provider.search("tune")]
+            assert any("tune" in str(hit.match_display).lower() for hit in hits)
+
+    _run(go())
+
+
 def test_tui_pipeline_buttons_dispatch(tmp_project):
     cli = _load_cli()
 

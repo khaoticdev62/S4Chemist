@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.10.2"
+__version__ = "0.10.3"
 
 PIPELINE_PHASES = [
     "concept",
@@ -2375,6 +2375,7 @@ def _make_tui_app(project: str = "."):
                 ("Pipeline: next actions", ["pipeline-next", proj]),
                 ("Pipeline: unlock phase", ["pipeline-unlock", proj]),
                 ("Pipeline: reset", ["pipeline-reset", proj]),
+                ("Pipeline: tune current phase", "pipeline-tune"),
                 ("Doctor (environment checks)", ["doctor"]),
                 ("Game Python check", ["game-python"]),
                 ("Version", ["version"]),
@@ -2398,6 +2399,10 @@ def _make_tui_app(project: str = "."):
             app = self.app
             if action == "refresh":
                 app.refresh_pipeline()  # type: ignore[attr-defined]
+            elif action == "pipeline-tune":
+                proj = Path(app._proj())  # type: ignore[attr-defined]
+                state = load_pipeline_state(proj)
+                app.run_command(["pipeline", "tune", current_phase(state), str(proj)])  # type: ignore[attr-defined]
             elif action == "wizard":
                 app.query_one(TabbedContent).active = "tab-create"  # type: ignore[attr-defined]
             else:
@@ -2440,6 +2445,7 @@ def _make_tui_app(project: str = "."):
                     yield Button("Package", id="package", variant="primary")
                     yield Button("Changelog", id="changelog")
                     yield Button("Tune IDs", id="tune-ids")
+                    yield Input(placeholder="Mods dir (optional)", id="mods_dir")
                     yield Button("Install", id="install")
                     yield Button("Doctor", id="doctor")
                     yield Button("Create", id="open-wizard", variant="warning")
@@ -2689,7 +2695,11 @@ def _make_tui_app(project: str = "."):
 
         @on(Button.Pressed, "#install")
         def _install(self) -> None:
-            self.run_command(["install", self._proj()])
+            argv = ["install", self._proj()]
+            mods_dir = self.query_one("#mods_dir", Input).value.strip()
+            if mods_dir:
+                argv += ["--to-dir", mods_dir]
+            self.run_command(argv)
 
         @on(Button.Pressed, "#pipeline-next")
         def _pipeline_next(self) -> None:
