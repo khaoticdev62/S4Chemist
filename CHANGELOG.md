@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.2 — 2026-07-22
+
+Supreme UI polish audit fixes.
+
+### Fixed
+- `pipeline-next` printed invalid command syntax (`pipeline unlock .`) — it now shows the
+  real commands with the project path (`pipeline-unlock <path>` / `pipeline-reset <path>`)
+- A completed pipeline (9/9) no longer lists "Complete current phase" as a next action —
+  it reports "Pipeline complete — all phases done."
+- Help NOTES line no longer wraps mid-phrase on 80-col terminals
+- Archive size/count line aligned exactly under the Built/Packaged label
+- `changelog` says "Updated" (it appends) instead of "Created"
+
+### Changed
+- CLI pipeline table: WAIT phases and their hints render muted, matching the TUI
+
 ## 0.10.1 — 2026-07-22
 
 ### Changed

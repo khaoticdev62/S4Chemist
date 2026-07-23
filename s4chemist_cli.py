@@ -34,7 +34,7 @@ if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
     except (AttributeError, UnicodeError):
         pass
 
-__version__ = "0.10.1"
+__version__ = "0.10.2"
 
 PIPELINE_PHASES = [
     "concept",
@@ -175,6 +175,8 @@ def phase_progress(state: dict) -> tuple[str, int, int, int]:
 def next_actions(state: dict) -> list[str]:
     cur = current_phase(state)
     meta = PIPELINE_META.get(cur, {})
+    if is_phase_locked(state, cur):
+        return ["Pipeline complete — all phases done."]
     actions = [f"Complete current phase: {meta.get('name', cur)}", meta.get("next", "")]
     if meta.get("artifact"):
         actions.append(f"Expected artifact: {meta['artifact']}")
@@ -198,9 +200,11 @@ def _pipeline_table(state: dict) -> Table:
         locked = is_phase_locked(state, p)
         active = p == cur and not locked
         marker = "DONE" if locked else ("ACTIVE" if active else "WAIT")
-        style = "ok" if locked else ("local" if active else "")
-        styled_marker = f"[{style}]{marker}[/{style}]" if style else marker
-        table.add_row(f"[head]{PIPELINE_META[p]['name']}[/]", styled_marker, PIPELINE_META[p]["hint"])
+        style = "ok" if locked else ("local" if active else "muted")
+        hint = PIPELINE_META[p]["hint"]
+        if not (locked or active):
+            hint = f"[muted]{hint}[/]"
+        table.add_row(f"[head]{PIPELINE_META[p]['name']}[/]", f"[{style}]{marker}[/{style}]", hint)
     return table
 
 
@@ -224,11 +228,11 @@ def print_pipeline_next(proj: Path) -> str:
     rows += [
         "",
         "[head]Next Actions:[/]",
-    ] + [f"  - {_esc(a)}" for a in actions]
+    ] + _bullets(_esc(a) for a in actions)
     rows += [
         "",
-        "[head]Unlock:[/] pipeline unlock .",
-        "[head]Reset:[/] pipeline reset .",
+        f"[head]Unlock:[/] pipeline-unlock {_esc(proj)}",
+        f"[head]Reset:[/] pipeline-reset {_esc(proj)}",
     ]
     return _status_panel("pipeline-next", rows, command="pipeline-next")
 
@@ -1855,7 +1859,7 @@ def print_help(*, is_subcommand=False, command="", error="") -> None:
         entry = COMMANDS.get(command)
         if entry and entry.args:
             panel.extend(_section("ARGS", [_esc(a) for a in entry.args]))
-        panel.extend(_section("NOTES", ["  Status: [verified]VERIFIED[/] = exercised end-to-end; [local]LOCAL PATH REQUIRED[/] = needs environment-specific value."]))
+        panel.extend(_section("NOTES", ["  Status: [verified]VERIFIED[/] = exercised end-to-end; [local]LOCAL[/] = needs a local path."]))
         panel.extend(_section("FOOTER", _help_footer()))
     else:
         panel.extend(_section("COMMANDS", [_commands_table()]))
@@ -1979,7 +1983,7 @@ def _cmd_build(argv: list[str]) -> int:
     else:
         out = build_project(proj)
     rows = _meta_block("verified", "Built", _rel_display(out, proj))
-    rows.append(f"         {_archive_stats(out)}")
+    rows.append(f"           {_archive_stats(out)}")
     print(_status_panel("build", rows, command="build"))
     _advance_pipeline_if_artifact(proj, "dist")
     return 0
@@ -1995,7 +1999,7 @@ def _cmd_package(argv: list[str]) -> int:
     proj = _existing_project(path)
     out = package_release(proj, out_dir=Path(out_dir) if out_dir else None)
     rows = _meta_block("verified", "Packaged", _rel_display(out, proj))
-    rows.append(f"         {_archive_stats(out)}")
+    rows.append(f"           {_archive_stats(out)}")
     print(_status_panel("package", rows, command="package"))
     _advance_pipeline_if_artifact(proj, "dist")
     _advance_pipeline_if_artifact(proj, "tmp/release_manifest.txt")
@@ -2144,7 +2148,7 @@ def _cmd_changelog(argv: list[str]) -> int:
     if changelog.exists():
         content = changelog.read_text(encoding="utf-8") + "\n" + content
     _write(changelog, content)
-    print(_status_panel("changelog", _meta_block("verified", "Created", str(changelog)), command="changelog"))
+    print(_status_panel("changelog", _meta_block("verified", "Updated", str(changelog)), command="changelog"))
     _advance_pipeline_if_artifact(proj, "CHANGELOG.md")
     return 0
 
